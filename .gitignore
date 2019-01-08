@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Origin
+*~
+*.o
+tmp*
+211cc
