@@ -80,6 +80,7 @@ Node *term();
 Node *assign();
 Node *mul();
 Node *add();
+Node *stmt();
 
 Node *mul() {
     Node *node = term();
@@ -121,17 +122,22 @@ Node *term() {
     else if (tokens[pos].ty == TK_IDENT)
         return new_node_ident(tokens[pos++].val);
 
-    error("It not expected token: %s", tokens[pos].input);
+    error("Not expected token: %s", tokens[pos].input);
 }
 
 Node *code[100];
 
-Node *program() {
-    int i = 0;
-    while (tokens[pos].ty != TK_EOF) {
-        code[i++] = assign();
-    }
-    code[i] = NULL;
+void program() {
+  int i = 0;
+  while (tokens[pos].ty != TK_EOF)
+    code[i++] = stmt();
+  code[i] = NULL;
+}
+
+Node *stmt() {
+  Node *node = assign();
+//   if (!consume(';'))
+//     error("Expect token is';', but got: %s", tokens[pos].input);
 }
 
 Node *assign() {
@@ -187,6 +193,51 @@ void tokenize(char *p) {
 
     tokens[i].ty = TK_EOF;
     tokens[i].input = p;
+}
+
+typedef struct {
+    void **data;
+    int capacity;
+    int len;
+} Vector;
+
+Vector *new_vector() {
+  Vector *vec = malloc(sizeof(Vector));
+  vec->data = malloc(sizeof(void *) * 16);
+  vec->capacity = 16;
+  vec->len = 0;
+  return vec;
+}
+
+void vec_push(Vector *vec, void *elem) {
+  if (vec->capacity == vec->len) {
+    vec->capacity *= 2;
+    vec->data = realloc(vec->data, sizeof(void *) * vec->capacity);
+  }
+  vec->data[vec->len++] = elem;
+}
+
+int expect(int line, int expected, int actual) {
+  if (expected == actual)
+    return;
+  fprintf(stderr, "%d: %d expected, but got %d\n",
+          line, expected, actual);
+  exit(1);
+}
+
+void runtest() {
+  Vector *vec = new_vector();
+  expect(__LINE__, 0, vec->len);
+
+  for (int i = 0; i < 100; i++)
+    vec_push(vec, (void *)i);
+
+  expect(__LINE__, 100, vec->len);
+  expect(__LINE__, 0, (int)vec->data[0]);
+  expect(__LINE__, 50, (int)vec->data[50]);
+  expect(__LINE__, 99, (int)vec->data[99]);
+
+  printf("Vector Test OK\n");
 }
 
 void gen_lval(Node *node) {
@@ -254,32 +305,39 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // Using tokenize to parse.
-    tokenize(argv[1]);
-    program();
+    char *arg = argv[1];
 
-    // Header of asemble.
-    printf(".intel_syntax noprefix\n");
-    printf(".global main\n");
-    printf("main:\n");
+    if (strcmp(arg, "-test") == 0) {
+        runtest();
+        return 0;
+    } else {
+        // Using tokenize to parse.
+        tokenize(arg);
+        program();
 
-    // Prologue
-    // Get a range for 26 variables.
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");
+        // Header of asemble.
+        printf(".intel_syntax noprefix\n");
+        printf(".global main\n");
+        printf("main:\n");
 
-    // Generate code.
-    for (int i = 0; code[i]; i++) {
-        gen(code[i]);
-        printf("  pop rax\n");
+        // Prologue
+        // Get a range for 26 variables.
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        printf("  sub rsp, 208\n");
+
+        // Generate code.
+        for (int i = 0; code[i]; i++) {
+            gen(code[i]);
+            printf("  pop rax\n");
+        }
+
+        // Epilogue
+        // Sinse the result of the last expression remains in rax,
+        // it becomes a return value.
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n");
+        printf("  ret\n");
+        return 0;
     }
-
-    // Epilogue
-    // Sinse the result of the last expression remains in rax,
-    // it becomes a return value.
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
-    return 0;
 }
