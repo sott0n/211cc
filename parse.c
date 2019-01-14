@@ -51,17 +51,22 @@ int consume(int ty) {
     return 1;
 }
 
-Node *mul() {
-    Node *node = term();
-
-    for (;;) {
-        if (consume('*'))
-            node = new_node('*', node, term());
-        else if (consume('/'))
-            node = new_node('/', node, term());
-        else
-            return node;
+Node *term() {
+    if (consume('(')) {
+        Node *node = add();
+        if (!consume(')'))
+            error("Not have a closing parenthesis corresponds to the bracket: %s",
+                    tokens[pos].input);
+        return node;
     }
+
+    if (tokens[pos].ty == TK_NUM)
+        return new_node_num(tokens[pos++].val);
+
+    if (tokens[pos].ty == TK_IDENT)
+        return new_node_ident(tokens[pos++].val);
+
+    error("Not expected token: %s", tokens[pos].input);
 }
 
 Node *add() {
@@ -77,21 +82,17 @@ Node *add() {
     }
 }
 
-Node *term() {
-    if (consume('(')) {
-        Node *node = add();
-        if (!consume(')'))
-            error("Not have a closing parenthesis corresponds to the bracket: %s",
-                    tokens[pos].input);
-        return node;
+Node *mul() {
+    Node *node = term();
+
+    for (;;) {
+        if (consume('*'))
+            node = new_node('*', node, term());
+        else if (consume('/'))
+            node = new_node('/', node, term());
+        else
+            return node;
     }
-
-    if (tokens[pos].ty == TK_NUM)
-        return new_node_num(tokens[pos++].val);
-    else if (tokens[pos].ty == TK_IDENT)
-        return new_node_ident(tokens[pos++].val);
-
-    error("Not expected token: %s", tokens[pos].input);
 }
 
 Node *stmt() {
@@ -105,9 +106,21 @@ Node *assign() {
 
     for (;;) {
         if (consume('='))
-            node = new_node('=', node, assign());
+            return new_node('=', node, assign());
+
         if (consume(';'))
             return node;
+
+        if (tokens[pos].ty == TK_EQUAL) {
+            pos++;
+            return new_node(ND_EQUAL, node, assign());
+        }
+
+        if (tokens[pos].ty == TK_NEQUAL) {
+            pos++;
+            return new_node(ND_NEQUAL, node, assign());
+        }
+
         else
             return node;
     }
@@ -130,7 +143,21 @@ void tokenize(char *p) {
         }
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
-             *p == '(' || *p == ')' || *p == '=' || *p == ';') {
+             *p == '(' || *p == ')' || *p == ';' || *p == '=' ||
+             *p == '!') {
+
+            if ((*p == '=' || *p == '!') && *(p+1) == '=') {
+                if (*p == '=') {
+                    tokens[i].ty = ND_EQUAL;
+                } else {
+                    tokens[i].ty = ND_NEQUAL;
+                }
+                tokens[i].input = p;
+                i++;
+                p += 2;
+                continue;
+            }
+
             tokens[i].ty = *p;
             tokens[i].input = p;
             i++;

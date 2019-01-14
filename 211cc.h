@@ -4,6 +4,8 @@
 enum {
     TK_NUM = 256,   // integer token
     TK_IDENT,       // Identifier
+    TK_EQUAL,       // '=='
+    TK_NEQUAL,      // '!=
     TK_EOF,         // End of input token
 };
 
@@ -11,6 +13,8 @@ enum {
 enum {
     ND_NUM = 256,
     ND_INDENT,
+    ND_EQUAL,
+    ND_NEQUAL,
 };
 
 // Type of token.

@@ -32,5 +32,10 @@ try 4 "b = 4"
 try 10 "a = b = 10;"
 try 15 "c = 3 + 7; c + 5;"
 try 10 "a = 3; c = a + 7;"
+try 1 "5 == 5;"
+try 1 "99 != 98;"
+try 0 "2 == 5;"
+try 0 "10 != 10;"
+try 1 "a = 3; a == 3;"
 
 echo Test OK
