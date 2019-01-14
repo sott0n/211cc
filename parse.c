@@ -29,10 +29,10 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *new_node_ident(int val) {
+Node *new_node_ident(char name) {
     Node *node = malloc(sizeof(Node));
     node->ty = ND_INDENT;
-    node->val = val;
+    node->name = name;
     return node;
 }
 
@@ -64,7 +64,7 @@ Node *term() {
         return new_node_num(tokens[pos++].val);
 
     if (tokens[pos].ty == TK_IDENT)
-        return new_node_ident(tokens[pos++].val);
+        return new_node_ident(tokens[pos++].name);
 
     error("Not expected token: %s", tokens[pos].input);
 }
@@ -176,6 +176,7 @@ void tokenize(char *p) {
         if ('a' <= *p && *p <= 'z') {
             tokens[i].ty = TK_IDENT;
             tokens[i].input = p;
+            tokens[i].name = *p;
             i++;
             p++;
             continue;

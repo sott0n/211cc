@@ -21,6 +21,7 @@ enum {
 typedef struct {
     int ty;         // token type
     int val;        // if ty is TK_NUM, val is number.
+    int name;      // token name
     char *input;    // token string
 } Token;
 
@@ -42,7 +43,7 @@ typedef struct {
 
 extern Node *new_node(int ty, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
-extern Node *new_node_ident(int val);
+extern Node *new_node_ident(char name);
 extern Node *mul();
 extern Node *add();
 extern Node *term();
