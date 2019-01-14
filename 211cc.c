@@ -5,16 +5,6 @@
 #include <string.h>
 #include "211cc.h"
 
-// Save tokenized value into this list
-// not over number 100.
-Token tokens[100];
-
-// Save each code splitted ';'.
-Node *code[100];
-
-// Recursive-decendent parser
-int pos = 0;
-
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "Incorrect number of args\n");

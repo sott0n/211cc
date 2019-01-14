@@ -4,6 +4,16 @@
 #include <stdarg.h>
 #include "211cc.h"
 
+// Save tokenized value into this list
+// not over number 100.
+Token tokens[100];
+
+// Save each code splitted ';'.
+Node *code[100];
+
+// Recursive-decendent parser
+int pos = 0;
+
 Node *new_node(int ty, Node *lhs, Node *rhs) {
     Node *node = malloc(sizeof(Node));
     node->ty = ty;
