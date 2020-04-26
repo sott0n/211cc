@@ -5,20 +5,22 @@
 #include <string.h>
 #include "211cc.h"
 
+char *user_input;
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "Incorrect number of args\n");
         return 1;
     }
 
-    char *arg = argv[1];
+    user_input = argv[1];
 
-    if (strcmp(arg, "-test") == 0) {
+    if (strcmp(user_input, "-test") == 0) {
         runtest();
         return 0;
     } else {
         // Using tokenize to parse.
-        token = tokenize(arg);
+        token = tokenize();
         program();
 
         // Header of asemble.

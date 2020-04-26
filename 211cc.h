@@ -58,13 +58,14 @@ extern Node *assign();
 extern Vector *new_vector();
 
 extern void error(char *fmt, ...);
+extern void error_at(char *loc, char *fmt, ...);
 extern bool consume(char op);
 extern void expect(char op);
 extern bool at_eof();
 extern Token *new_token(TokenKind kind, Token *cur, char *str);
 extern void vec_push(Vector *vec, void *elem);
 extern void program();
-extern Token *tokenize(char *p);
+extern Token *tokenize();
 extern void vec_push();
 extern void ge_lval(Node *node);
 extern void gen(Node *node);
@@ -72,5 +73,4 @@ extern void runtest();
 
 extern Node *code[];
 extern Token *token;
-
-extern int pos;
+extern char *user_input;

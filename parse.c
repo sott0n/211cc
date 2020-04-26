@@ -10,6 +10,27 @@ Node *code[100];
 
 Token *token;
 
+void error(char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+void error_at(char *loc, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    int pos = loc - user_input;
+    fprintf(stderr, "%s\n", user_input);
+    fprintf(stderr, "%*s", pos, "");
+    fprintf(stderr, "^ ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
 Node *new_node(TokenKind kind, Node *lhs, Node *rhs) {
     Node *node = malloc(sizeof(Node));
     node->kind = kind;
@@ -34,14 +55,6 @@ Node *new_node_ident(char name) {
     return node;
 }
 
-void error(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
-}
-
 bool consume(char op) {
     if (token->str[0] != op)
         return false;
@@ -51,7 +64,7 @@ bool consume(char op) {
 
 void expect(char op) {
     if (token->str[0] != op)
-        error("A next token is not %c", op);
+        error_at(token->str, "A next token is not %c", op);
     token = token->next;
 }
 
@@ -71,7 +84,7 @@ Node *term() {
     if (consume('(')) {
         Node *node = add();
         if (!consume(')'))
-            error("Not have a closing parenthesis corresponds to the bracket: %s",
+            error_at(token->str, "Not have a closing parenthesis corresponds to the bracket: %s",
                     token->str);
         return node;
     }
@@ -82,7 +95,7 @@ Node *term() {
     if (token->kind == TK_IDENT)
         return new_node_ident(token->name);
 
-    error("Not expected token: %s", token->str);
+    error_at(token->str, "Not expected token: %s", token->str);
 }
 
 Node *add() {
@@ -147,7 +160,8 @@ void program() {
     code[i] = NULL;
 }
 
-Token *tokenize(char *p) {
+Token *tokenize() {
+    char *p = user_input;
     Token head;
     head.next = NULL;
     Token *cur = &head;
