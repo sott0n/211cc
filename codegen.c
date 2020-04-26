@@ -67,11 +67,11 @@ void gen(Node *node) {
         printf("  sub rax, rdi\n");
         break;
     case ND_MUL:
-        printf("  mul rdi\n");
+        printf("  imul rdi\n");
         break;
     case ND_DIV:
-        printf("  mov rdx, 0\n");
-        printf("  div rdi\n");
+        printf("  cqo\n");
+        printf("  idiv rdi\n");
     }
 
     printf("  push rax\n");
