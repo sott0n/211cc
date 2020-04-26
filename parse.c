@@ -43,7 +43,6 @@ Node *new_node_num(int val) {
     Node *node = malloc(sizeof(Node));
     node->kind = ND_NUM;
     node->val = val;
-    token = token->next;
     return node;
 }
 
@@ -64,8 +63,16 @@ bool consume(char op) {
 
 void expect(char op) {
     if (token->str[0] != op)
-        error_at(token->str, "A next token is not %c", op);
+        error_at(token->str, "expected '%c'", op);
     token = token->next;
+}
+
+int expect_number() {
+    if (token->kind != TK_NUM)
+        error_at(token->str, "expected a number");
+    int val = token->val;
+    token = token->next;
+    return val;
 }
 
 bool at_eof() {
@@ -78,50 +85,6 @@ Token *new_token(TokenKind kind, Token *cur, char *str) {
     tok->str = str;
     cur->next = tok;
     return tok;
-}
-
-Node *term() {
-    if (consume('(')) {
-        Node *node = add();
-        if (!consume(')'))
-            error_at(token->str, "Not have a closing parenthesis corresponds to the bracket: %s",
-                    token->str);
-        return node;
-    }
-
-    if (token->kind == TK_NUM)
-        return new_node_num(token->val);
-
-    if (token->kind == TK_IDENT)
-        return new_node_ident(token->name);
-
-    error_at(token->str, "Not expected token: %s", token->str);
-}
-
-Node *add() {
-    Node *node = mul();
-
-    for (;;) {
-        if(consume('+'))
-            node = new_node(ND_ADD, node, mul());
-        else if (consume('-'))
-            node = new_node(ND_SUB, node, mul());
-        else
-            return node;
-    }
-}
-
-Node *mul() {
-    Node *node = term();
-
-    for (;;) {
-        if (consume('*'))
-            node = new_node(ND_MUL, node, term());
-        else if (consume('/'))
-            node = new_node(ND_DIV, node, term());
-        else
-            return node;
-    }
 }
 
 Node *stmt() {
@@ -149,6 +112,58 @@ Node *assign() {
         else
             return node;
     }
+}
+
+Node *add() {
+    Node *node = mul();
+
+    for (;;) {
+        if(consume('+'))
+            node = new_node(ND_ADD, node, mul());
+        else if (consume('-'))
+            node = new_node(ND_SUB, node, mul());
+        else
+            return node;
+    }
+}
+
+Node *mul() {
+    Node *node = unary();
+
+    for (;;) {
+        if (consume('*'))
+            node = new_node(ND_MUL, node, unary());
+        else if (consume('/'))
+            node = new_node(ND_DIV, node, unary());
+        else
+            return node;
+    }
+}
+
+Node *unary() {
+    if (consume('+'))
+        return unary();
+    if (consume('-'))
+        return new_node(ND_SUB, new_node_num(0), unary());
+    return term();
+}
+
+Node *term() {
+    if (consume('(')) {
+        Node *node = add();
+        if (!consume(')'))
+            error_at(token->str, "Not have a closing parenthesis corresponds to the bracket: %s",
+                    token->str);
+        return node;
+    }
+
+    if (token->kind == TK_NUM)
+        return new_node_num(expect_number());
+
+    if (token->kind == TK_IDENT)
+        return new_node_ident(token->name);
+
+    error_at(token->str, "Not expected token: %s", token->str);
 }
 
 void program() {

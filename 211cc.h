@@ -59,6 +59,7 @@ extern Node *add();
 extern Node *term();
 extern Node *stmt();
 extern Node *assign();
+extern Node *unary();
 
 extern Vector *new_vector();
 
@@ -66,6 +67,7 @@ extern void error(char *fmt, ...);
 extern void error_at(char *loc, char *fmt, ...);
 extern bool consume(char op);
 extern void expect(char op);
+extern int expect_number();
 extern bool at_eof();
 extern Token *new_token(TokenKind kind, Token *cur, char *str);
 extern void vec_push(Vector *vec, void *elem);
