@@ -24,24 +24,6 @@ void gen(Node *node) {
         return;
     }
 
-    if (node->kind == ND_EQUAL || node->kind == ND_NEQUAL) {
-        gen(node->lhs);
-        gen(node->rhs);
-
-        printf("  pop rax\n");
-        printf("  pop rdi\n");
-        printf("  cmp rdi, rax\n");
-
-        if (node->kind == ND_EQUAL) {
-            printf("  sete al\n");
-        } else {
-            printf("  setne al\n");
-        }
-        printf("  movzb rax, al\n");
-        printf("  push rax\n");
-        return;
-    }
-
     if (node->kind == ND_ASSIGN) {
         gen_lval(node->lhs);
         gen(node->rhs);
@@ -72,6 +54,27 @@ void gen(Node *node) {
     case ND_DIV:
         printf("  cqo\n");
         printf("  idiv rdi\n");
+        break;
+    case ND_EQ:
+        printf("  cmp rax, rdi\n");
+        printf("  sete al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case ND_NE:
+        printf("  cmp rax, rdi\n");
+        printf("  setne al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case ND_LT:
+        printf("  cmp rax, rdi\n");
+        printf("  setl al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case ND_LE:
+        printf("  cmp rax, rdi\n");
+        printf("  setle al\n");
+        printf("  movzb rax, al\n");
+        break;
     }
 
     printf("  push rax\n");
