@@ -1,7 +1,7 @@
 #include "211cc.h"
 
 void gen_lval(Node *node) {
-    if (node->ty != ND_INDENT)
+    if (node->kind != ND_INDENT)
         error("Left value is not identifier");
 
     int offset = ('z' - node->name + 1) * 8;
@@ -11,12 +11,12 @@ void gen_lval(Node *node) {
 }
 
 void gen(Node *node) {
-    if (node->ty == ND_NUM) {
+    if (node->kind == ND_NUM) {
         printf("  push %d\n", node->val);
         return;
     }
 
-    if (node->ty == ND_INDENT) {
+    if (node->kind == ND_INDENT) {
         gen_lval(node);
         printf("  pop rax\n");
         printf("  mov rax, [rax]\n");
@@ -24,7 +24,7 @@ void gen(Node *node) {
         return;
     }
 
-    if (node->ty == ND_EQUAL || node->ty == ND_NEQUAL) {
+    if (node->kind == ND_EQUAL || node->kind == ND_NEQUAL) {
         gen(node->lhs);
         gen(node->rhs);
 
@@ -32,7 +32,7 @@ void gen(Node *node) {
         printf("  pop rdi\n");
         printf("  cmp rdi, rax\n");
 
-        if (node->ty == ND_EQUAL) {
+        if (node->kind == ND_EQUAL) {
             printf("  sete al\n");
         } else {
             printf("  setne al\n");
@@ -42,7 +42,7 @@ void gen(Node *node) {
         return;
     }
 
-    if (node->ty == '=') {
+    if (node->kind == '=') {
         gen_lval(node->lhs);
         gen(node->rhs);
 
@@ -59,7 +59,7 @@ void gen(Node *node) {
     printf("  pop rdi\n");
     printf("  pop rax\n");
 
-    switch (node->ty) {
+    switch (node->kind) {
     case '+':
         printf("  add rax, rdi\n");
         break;

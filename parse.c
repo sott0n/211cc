@@ -1,22 +1,18 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include "211cc.h"
 
-// Save tokenized value into this list
-// not over number 100.
-Token tokens[100];
-
 // Save each code splitted ';'.
 Node *code[100];
 
-// Recursive-decendent parser
-int pos = 0;
+Token *token;
 
-Node *new_node(int ty, Node *lhs, Node *rhs) {
+Node *new_node(TokenKind kind, Node *lhs, Node *rhs) {
     Node *node = malloc(sizeof(Node));
-    node->ty = ty;
+    node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
     return node;
@@ -24,15 +20,17 @@ Node *new_node(int ty, Node *lhs, Node *rhs) {
 
 Node *new_node_num(int val) {
     Node *node = malloc(sizeof(Node));
-    node->ty = ND_NUM;
+    node->kind = ND_NUM;
     node->val = val;
+    token = token->next;
     return node;
 }
 
 Node *new_node_ident(char name) {
     Node *node = malloc(sizeof(Node));
-    node->ty = ND_INDENT;
+    node->kind = ND_INDENT;
     node->name = name;
+    token = token->next;
     return node;
 }
 
@@ -44,11 +42,29 @@ void error(char *fmt, ...) {
     exit(1);
 }
 
-int consume(int ty) {
-    if (tokens[pos].ty != ty)
-        return 0;
-    pos++;
-    return 1;
+bool consume(char op) {
+    if (token->str[0] != op)
+        return false;
+    token = token->next;
+    return true;
+}
+
+void expect(char op) {
+    if (token->str[0] != op)
+        error("A next token is not %c", op);
+    token = token->next;
+}
+
+bool at_eof() {
+    return token->kind == TK_EOF;
+}
+
+Token *new_token(TokenKind kind, Token *cur, char *str) {
+    Token *tok = calloc(1, sizeof(Token));
+    tok->kind = kind;
+    tok->str = str;
+    cur->next = tok;
+    return tok;
 }
 
 Node *term() {
@@ -56,17 +72,17 @@ Node *term() {
         Node *node = add();
         if (!consume(')'))
             error("Not have a closing parenthesis corresponds to the bracket: %s",
-                    tokens[pos].input);
+                    token->str);
         return node;
     }
 
-    if (tokens[pos].ty == TK_NUM)
-        return new_node_num(tokens[pos++].val);
+    if (token->kind == TK_NUM)
+        return new_node_num(token->val);
 
-    if (tokens[pos].ty == TK_IDENT)
-        return new_node_ident(tokens[pos++].name);
+    if (token->kind == TK_IDENT)
+        return new_node_ident(token->name);
 
-    error("Not expected token: %s", tokens[pos].input);
+    error("Not expected token: %s", token->str);
 }
 
 Node *add() {
@@ -97,8 +113,6 @@ Node *mul() {
 
 Node *stmt() {
   Node *node = assign();
-//   if (!consume(';'))
-//     error("Expect token is';', but got: %s", tokens[pos].input);
 }
 
 Node *assign() {
@@ -111,13 +125,12 @@ Node *assign() {
         if (consume(';'))
             return node;
 
-        if (tokens[pos].ty == TK_EQUAL) {
-            pos++;
+        if (token->kind == TK_EQUAL) {
+            printf(">>>\n");
             return new_node(ND_EQUAL, node, assign());
         }
 
-        if (tokens[pos].ty == TK_NEQUAL) {
-            pos++;
+        if (token->kind == TK_NEQUAL) {
             return new_node(ND_NEQUAL, node, assign());
         }
 
@@ -127,15 +140,25 @@ Node *assign() {
 }
 
 void program() {
-  int i = 0;
-  while (tokens[pos].ty != TK_EOF)
-    code[i++] = stmt();
-  code[i] = NULL;
+    int i = 0;
+    while (!at_eof()) {
+        code[i++] = stmt();
+    }
+    code[i] = NULL;
 }
 
-void tokenize(char *p) {
-    int i = 0;
+Token *tokenize(char *p) {
+    Token head;
+    head.next = NULL;
+    Token *cur = &head;
+
     while (*p) {
+        // Skip newline character.
+        if (*p == '\n') {
+            p++;
+            continue;
+        }
+
         // Skip whitespace.
         if (isspace(*p)) {
             p++;
@@ -148,44 +171,33 @@ void tokenize(char *p) {
 
             if ((*p == '=' || *p == '!') && *(p+1) == '=') {
                 if (*p == '=') {
-                    tokens[i].ty = ND_EQUAL;
+                    cur = new_token(TK_EQUAL, cur, p);
                 } else {
-                    tokens[i].ty = ND_NEQUAL;
+                    cur = new_token(TK_NEQUAL, cur, p);
                 }
-                tokens[i].input = p;
-                i++;
                 p += 2;
                 continue;
             }
 
-            tokens[i].ty = *p;
-            tokens[i].input = p;
-            i++;
-            p++;
+            cur = new_token(TK_RESERVED, cur, p++);
             continue;
         }
 
         if (isdigit(*p)) {
-            tokens[i].ty = TK_NUM;
-            tokens[i].input = p;
-            tokens[i].val = strtol(p, &p, 10);
-            i++;
+            cur = new_token(TK_NUM, cur, p);
+            cur->val = strtol(p, &p, 10);
             continue;
         }
 
         if ('a' <= *p && *p <= 'z') {
-            tokens[i].ty = TK_IDENT;
-            tokens[i].input = p;
-            tokens[i].name = *p;
-            i++;
+            cur = new_token(TK_IDENT, cur, p);
+            cur->name = *p;
             p++;
             continue;
         }
 
-        fprintf(stderr, "Cannot tokenize: %s\n", p);
-        exit(1);
+        error("Cannot tokenize: %s\n", p);
     }
-
-    tokens[i].ty = TK_EOF;
-    tokens[i].input = p;
+    new_token(TK_EOF, cur, p);
+    return head.next;
 }

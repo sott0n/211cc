@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         return 0;
     } else {
         // Using tokenize to parse.
-        tokenize(arg);
+        token = tokenize(arg);
         program();
 
         // Header of asemble.
