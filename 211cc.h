@@ -28,6 +28,11 @@ typedef enum {
     ND_INDENT,
     ND_EQUAL,
     ND_NEQUAL,
+    ND_ADD,
+    ND_SUB,
+    ND_MUL,
+    ND_DIV,
+    ND_ASSIGN,
 } AstKind;
 
 // Type of node.

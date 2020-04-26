@@ -103,9 +103,9 @@ Node *add() {
 
     for (;;) {
         if(consume('+'))
-            node = new_node('+', node, mul());
+            node = new_node(ND_ADD, node, mul());
         else if (consume('-'))
-            node = new_node('-', node, mul());
+            node = new_node(ND_SUB, node, mul());
         else
             return node;
     }
@@ -116,9 +116,9 @@ Node *mul() {
 
     for (;;) {
         if (consume('*'))
-            node = new_node('*', node, term());
+            node = new_node(ND_MUL, node, term());
         else if (consume('/'))
-            node = new_node('/', node, term());
+            node = new_node(ND_DIV, node, term());
         else
             return node;
     }
@@ -133,13 +133,12 @@ Node *assign() {
 
     for (;;) {
         if (consume('='))
-            return new_node('=', node, assign());
+            return new_node(ND_ASSIGN, node, assign());
 
         if (consume(';'))
             return node;
 
         if (token->kind == TK_EQUAL) {
-            printf(">>>\n");
             return new_node(ND_EQUAL, node, assign());
         }
 
