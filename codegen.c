@@ -1,12 +1,11 @@
 #include "211cc.h"
 
 void gen_lval(Node *node) {
-    if (node->kind != ND_INDENT)
+    if (node->kind != ND_LVAR)
         error("Left value is not identifier");
 
-    int offset = ('z' - node->name + 1) * 8;
     printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", offset);
+    printf("  sub rax, %d\n", node->offset);
     printf("  push rax\n");
 }
 
@@ -16,7 +15,7 @@ void gen(Node *node) {
         return;
     }
 
-    if (node->kind == ND_INDENT) {
+    if (node->kind == ND_LVAR) {
         gen_lval(node);
         printf("  pop rax\n");
         printf("  mov rax, [rax]\n");

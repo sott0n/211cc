@@ -24,7 +24,7 @@ struct Token {
 // Define a type of AST.
 typedef enum {
     ND_NUM = 256,   // integer
-    ND_INDENT,      // indent
+    ND_LVAR,        // indent
     ND_EQ,          // ==
     ND_NE,          // !=
     ND_LT,          // <
@@ -42,7 +42,7 @@ typedef struct Node {
     struct Node *lhs;   // Left-hand side
     struct Node *rhs;   // Right-hand side
     int val;            // Use it if only ty is ND_NUM
-    char name;          // Use it if only ty is ND_INDENT
+    int offset;         // Use it if only ty is ND_LVAL
 } Node;
 
 // Type of vector.
@@ -54,7 +54,8 @@ typedef struct {
 
 extern Node *new_node(TokenKind kind, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
-extern Node *new_node_ident(char name);
+extern Node *new_node_ident();
+extern Node *expr();
 extern Node *stmt();
 extern Node *assign();
 extern Node *equality();

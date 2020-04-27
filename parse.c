@@ -45,10 +45,11 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *new_node_ident(char name) {
-    Node *node = malloc(sizeof(Node));
-    node->kind = ND_INDENT;
-    node->name = name;
+Node *new_node_ident() {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = (token->str[0] - 'a' + 1) * 8;
+    token = token->next;
     return node;
 }
 
@@ -61,9 +62,9 @@ bool consume(char *op) {
 }
 
 void expect(char *op) {
-    if (token->kind == TK_RESERVED || strlen(op) != token->len ||
+    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
         memcmp(token->str, op, token->len))
-        error_at(token->str, "expected '%c'", op);
+        error_at(token->str, "expected '%s'", op);
     token = token->next;
 }
 
@@ -75,33 +76,25 @@ int expect_number() {
     return val;
 }
 
-char expect_ident() {
-    if (token->kind != TK_IDENT)
-        error_at(token->str, "expected a identifier");
-    char name = token->name;
-    token = token->next;
-    return name;
-}
-
 bool at_eof() {
     return token->kind == TK_EOF;
 }
 
+Node *expr() {
+    return assign();
+}
+
 Node *stmt() {
-    Node *node = assign();
+    Node *node = expr();
+    expect(";");
+    return node;
 }
 
 Node *assign() {
     Node *node = equality();
-
-    for (;;) {
-        if (consume("="))
-            return new_node(ND_ASSIGN, node, assign());
-        else if (consume(";"))
-            return node;
-        else
-            return node;
-    }
+    if (consume("="))
+        node = new_node(ND_ASSIGN, node, assign());
+    return node;
 }
 
 Node *equality() {
@@ -179,15 +172,14 @@ Node *term() {
         return new_node_num(expect_number());
 
     if (token->kind == TK_IDENT)
-        return new_node_ident(expect_ident());
+        return new_node_ident();
 
     error_at(token->str, "Not expected token: %s", token->str);
 }
 
 void program() {
     int i = 0;
-    while (!at_eof()) {
+    while (!at_eof())
         code[i++] = stmt();
-    }
     code[i] = NULL;
 }
