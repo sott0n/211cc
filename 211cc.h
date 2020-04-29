@@ -1,88 +1,90 @@
+#define _GNU_SOURCE
+#include <assert.h>
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-// Enum values expresses stype of token.
+//
+// tokenize.c
+//
+
+// Token
 typedef enum {
-    TK_RESERVED,    // Symbol
-    TK_NUM,         // integer token
-    TK_IDENT,       // Identifier
-    TK_EOF,         // End of input token
+    TK_RESERVED,    // Keywords or puctuators
+    TK_NUM,         // Integer literals
+    TK_IDENT,       // Identifiers
+    TK_EOF,         // End of file
 } TokenKind;
 
+// Token type
 typedef struct Token Token;
-
-// Type of token.
 struct Token {
     TokenKind kind; // token type
     Token *next;    // next token
-    int val;        // if ty is TK_NUM, val is number.
-    int name;       // token name
-    char *str;      // token string
+    long val;       // if ty is TK_NUM, val is number.
+    char *loc;      // token location
     int len;        // token length
 };
 
-// Define a type of AST.
+void error(char *fmt, ...);
+void error_tok(Token *tok, char *fmt, ...);
+bool equal(Token *tok, char *op);
+Token *skip(Token *tok, char *op);
+Token *tokenize(char *input);
+
+//
+// parse.c
+//
+
+// Local variable
+typedef struct Var Var;
+struct Var {
+    Var *next;      // next Var
+    char *name;     // Variable name
+    int offset;     // Offset from RBP
+};
+
+// Define a type of AST
 typedef enum {
-    ND_NUM = 256,   // integer
-    ND_LVAR,        // indent
-    ND_EQ,          // ==
-    ND_NE,          // !=
-    ND_LT,          // <
-    ND_LE,          // <=
     ND_ADD,         // +
     ND_SUB,         // -
     ND_MUL,         // *
     ND_DIV,         // /
+    ND_EQ,          // ==
+    ND_NE,          // !=
+    ND_LT,          // <
+    ND_LE,          // <=
     ND_ASSIGN,      // =
-} AstKind;
+    ND_RETURN,      // "return"
+    ND_EXPR_STMT,   // Expression statement
+    ND_VAR,         // Variable
+    ND_NUM,         // integer
+} NodeKind;
 
-// Type of node.
-typedef struct Node {
-    TokenKind kind;     // Operator or ND_NUM
-    struct Node *lhs;   // Left-hand side
-    struct Node *rhs;   // Right-hand side
-    int val;            // Use it if only ty is ND_NUM
-    int offset;         // Use it if only ty is ND_LVAL
-} Node;
+// Type of node
+typedef struct Node Node;
+struct Node {
+    NodeKind kind;      // Node kind
+    Node *next;         // Next node
+    Node *lhs;          // Left-hand side
+    Node *rhs;          // Right-hand side
+    Var *var;           // Use it if only kind == ND_VAR
+    long val;           // Use it if only kind == ND_NUM
+};
 
-// Type of vector.
-typedef struct {
-    void **data;
-    int capacity;
-    int len;
-} Vector;
+typedef struct Function Function;
+struct Function {
+    Node *node;
+    Var *locals;
+    int stack_size;
+};
 
-extern Node *new_node(TokenKind kind, Node *lhs, Node *rhs);
-extern Node *new_node_num(int val);
-extern Node *new_node_ident();
-extern Node *expr();
-extern Node *stmt();
-extern Node *assign();
-extern Node *equality();
-extern Node *relational();
-extern Node *add();
-extern Node *mul();
-extern Node *unary();
-extern Node *term();
+Function *parse(Token *tok);
 
-extern Vector *new_vector();
-
-extern void error(char *fmt, ...);
-extern void error_at(char *loc, char *fmt, ...);
-extern bool consume(char *op);
-extern void expect(char *op);
-extern int expect_number();
-extern bool at_eof();
-extern Token *new_token(TokenKind kind, Token *cur, char *str, int len);
-extern bool startswith(char *p, char *q);
-extern void vec_push(Vector *vec, void *elem);
-extern void program();
-extern Token *tokenize();
-extern void vec_push();
-extern void ge_lval(Node *node);
-extern void gen(Node *node);
-extern void runtest();
-
-extern Node *code[];
-extern Token *token;
-extern char *user_input;
+//
+// codegen.c
+//
+void codegen(Function *prog);

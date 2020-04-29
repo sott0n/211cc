@@ -1,14 +1,13 @@
-CFLAGS=-std=c11 -g -static
+CFLAGS=-std=c11 -g -static -fno-common
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 211cc: $(OBJS)
-		$(CC) -o 211cc $(OBJS) $(LDFLAGS)
+		$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 $(OBJS): 211cc.h
 
 test: 211cc
-		./211cc -test
 		./test.sh
 
 clean:

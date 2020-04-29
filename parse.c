@@ -1,185 +1,242 @@
-#include <ctype.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
 #include "211cc.h"
 
-// Save each code splitted ';'.
-Node *code[100];
+// All local variable instances created during parsing are
+// accumulated to this list.
+Var *locals;
 
-void error(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
+static Node *expr(Token **rest, Token *tok);
+static Node *assign(Token **rest, Token *tok);
+static Node *equality(Token **rest, Token *tok);
+static Node *relational(Token **rest, Token *tok);
+static Node *add(Token **rest, Token *tok);
+static Node *mul(Token **rest, Token *tok);
+static Node *unary(Token **rest, Token *tok);
+static Node *primary(Token **rest, Token *tok);
+
+// Find a local variable by name.
+static Var *find_var(Token *tok) {
+    for (Var *var = locals; var; var = var->next)
+        if (strlen(var->name) == tok->len && !strncmp(tok->loc, var->name, tok->len))
+            return var;
+    return NULL;
 }
 
-void error_at(char *loc, char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-
-    int pos = loc - user_input;
-    fprintf(stderr, "%s\n", user_input);
-    fprintf(stderr, "%*s", pos, "");
-    fprintf(stderr, "^ ");
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
-}
-
-Node *new_node(TokenKind kind, Node *lhs, Node *rhs) {
-    Node *node = malloc(sizeof(Node));
+static Node *new_node(NodeKind kind) {
+    Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
+    return node;
+}
+
+static Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+    Node *node = new_node(kind);
     node->lhs = lhs;
     node->rhs = rhs;
     return node;
 }
 
-Node *new_node_num(int val) {
-    Node *node = malloc(sizeof(Node));
-    node->kind = ND_NUM;
+static Node *new_unary(NodeKind kind, Node *expr) {
+    Node *node = new_node(kind);
+    node->lhs = expr;
+    return node;
+}
+
+static Node *new_num(long val) {
+    Node *node = new_node(ND_NUM);
     node->val = val;
     return node;
 }
 
-Node *new_node_ident() {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-    node->offset = (token->str[0] - 'a' + 1) * 8;
-    token = token->next;
+static Node *new_var_node(Var *var) {
+    Node *node = new_node(ND_VAR);
+    node->var = var;
     return node;
 }
 
-bool consume(char *op) {
-    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-        return false;
-    token = token->next;
-    return true;
+static Var *new_lvar(char *name) {
+    Var *var = calloc(1, sizeof(Var));
+    var->name = name;
+    var->next = locals;
+    locals = var;
+    return var;
 }
 
-void expect(char *op) {
-    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-        error_at(token->str, "expected '%s'", op);
-    token = token->next;
+static long get_number(Token *tok) {
+    if (tok->kind != TK_NUM)
+        error_tok(tok, "expected a number");
+    return tok->val;
 }
 
-int expect_number() {
-    if (token->kind != TK_NUM)
-        error_at(token->str, "expected a number");
-    int val = token->val;
-    token = token->next;
-    return val;
-}
+// stmt = "return" expr ";"
+//      | expr ";"
+static Node *stmt(Token **rest, Token *tok) {
+    Node *node;
 
-bool at_eof() {
-    return token->kind == TK_EOF;
-}
+    if (equal(tok, "return"))
+        node = new_unary(ND_RETURN, expr(&tok, tok->next));
+    else
+        node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
 
-Node *expr() {
-    return assign();
-}
-
-Node *stmt() {
-    Node *node = expr();
-    expect(";");
+    *rest = skip(tok, ";");
     return node;
 }
 
-Node *assign() {
-    Node *node = equality();
-    if (consume("="))
-        node = new_node(ND_ASSIGN, node, assign());
+// expr = assign
+static Node *expr(Token **rest, Token *tok) {
+    return assign(rest, tok);
+}
+
+// assign = equality ("=" assign)?
+static Node *assign(Token **rest, Token *tok) {
+    Node *node = equality(&tok, tok);
+    if (equal(tok, "="))
+        node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next));
+    *rest = tok;
     return node;
 }
 
-Node *equality() {
-    Node *node = relational();
+// equality = relational ("==" relational | "!=" relational)*
+static Node *equality(Token **rest, Token *tok) {
+    Node *node = relational(&tok, tok);
 
     for (;;) {
-        if (consume("=="))
-            node = new_node(ND_EQ, node, relational());
-        else if (consume("!="))
-            node = new_node(ND_NE, node, relational());
-        else
-            return node;
-    }
-}
+        if (equal(tok, "==")) {
+        Node *rhs = relational(&tok, tok->next);
+        node = new_binary(ND_EQ, node, rhs);
+        continue;
+        }
 
-Node *relational() {
-    Node *node = add();
+        if (equal(tok, "!=")) {
+        Node *rhs = relational(&tok, tok->next);
+        node = new_binary(ND_NE, node, rhs);
+        continue;
+        }
 
-    for (;;) {
-        if (consume("<"))
-            node = new_node(ND_LT, node, add());
-        else if (consume("<="))
-            node = new_node(ND_LE, node, add());
-        else if (consume(">"))
-            node = new_node(ND_LT, add(), node);
-        else if (consume(">="))
-            node = new_node(ND_LE, add(), node);
-        else
-            return node;
-    }
-}
-
-Node *add() {
-    Node *node = mul();
-
-    for (;;) {
-        if (consume("+"))
-            node = new_node(ND_ADD, node, mul());
-        else if (consume("-"))
-            node = new_node(ND_SUB, node, mul());
-        else
-            return node;
-    }
-}
-
-Node *mul() {
-    Node *node = unary();
-    for (;;) {
-        if (consume("*"))
-            node = new_node(ND_MUL, node, unary());
-        else if (consume("/"))
-            node = new_node(ND_DIV, node, unary());
-        else
-            return node;
-    }
-}
-
-Node *unary() {
-    if (consume("+"))
-        return unary();
-    if (consume("-"))
-        return new_node(ND_SUB, new_node_num(0), unary());
-    return term();
-}
-
-Node *term() {
-    if (consume("(")) {
-        Node *node = add();
-        if (!consume(")"))
-            error_at(token->str, "Not have a closing parenthesis corresponds to the bracket: %s",
-                    token->str);
+        *rest = tok;
         return node;
     }
-    if (token->kind == TK_NUM)
-        return new_node_num(expect_number());
-
-    if (token->kind == TK_IDENT)
-        return new_node_ident();
-
-    error_at(token->str, "Not expected token: %s", token->str);
 }
 
-void program() {
-    int i = 0;
-    while (!at_eof())
-        code[i++] = stmt();
-    code[i] = NULL;
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+static Node *relational(Token **rest, Token *tok) {
+    Node *node = add(&tok, tok);
+
+    for (;;) {
+        if (equal(tok, "<")) {
+        Node *rhs = add(&tok, tok->next);
+        node = new_binary(ND_LT, node, rhs);
+        continue;
+        }
+
+        if (equal(tok, "<=")) {
+        Node *rhs = add(&tok, tok->next);
+        node = new_binary(ND_LE, node, rhs);
+        continue;
+        }
+
+        if (equal(tok, ">")) {
+        Node *rhs = add(&tok, tok->next);
+        node = new_binary(ND_LT, rhs, node);
+        continue;
+        }
+
+        if (equal(tok, ">=")) {
+        Node *rhs = add(&tok, tok->next);
+        node = new_binary(ND_LE, rhs, node);
+        continue;
+        }
+
+        *rest = tok;
+        return node;
+    }
+}
+
+// add = mul ("+" mul | "-" mul)*
+static Node *add(Token **rest, Token *tok) {
+    Node *node = mul(&tok, tok);
+
+    for (;;) {
+        if (equal(tok, "+")) {
+        Node *rhs = mul(&tok, tok->next);
+        node = new_binary(ND_ADD, node, rhs);
+        continue;
+        }
+
+        if (equal(tok, "-")) {
+        Node *rhs = mul(&tok, tok->next);
+        node = new_binary(ND_SUB, node, rhs);
+        continue;
+        }
+
+        *rest = tok;
+        return node;
+    }
+}
+
+// mul = unary ("*" unary | "/" unary)*
+static Node *mul(Token **rest, Token *tok) {
+    Node *node = unary(&tok, tok);
+
+    for (;;) {
+        if (equal(tok, "*")) {
+        Node *rhs = unary(&tok, tok->next);
+        node = new_binary(ND_MUL, node, rhs);
+        continue;
+        }
+
+        if (equal(tok, "/")) {
+        Node *rhs = unary(&tok, tok->next);
+        node = new_binary(ND_DIV, node, rhs);
+        continue;
+        }
+
+        *rest = tok;
+        return node;
+    }
+}
+
+// unary = ("+" | "-") unary
+//       | primary
+static Node *unary(Token **rest, Token *tok) {
+    if (equal(tok, "+"))
+        return unary(rest, tok->next);
+
+    if (equal(tok, "-"))
+        return new_binary(ND_SUB, new_num(0), unary(rest, tok->next));
+
+    return primary(rest, tok);
+}
+
+// primary = "(" expr ")" | ident | num
+static Node *primary(Token **rest, Token *tok) {
+    if (equal(tok, "(")) {
+        Node *node = expr(&tok, tok->next);
+        *rest = skip(tok, ")");
+        return node;
+    }
+
+    if (tok->kind == TK_IDENT) {
+        Var *var = find_var(tok);
+        if (!var)
+        var = new_lvar(strndup(tok->loc, tok->len));
+        *rest = tok->next;
+        return new_var_node(var);
+    }
+
+    Node *node = new_num(get_number(tok));
+    *rest = tok->next;
+    return node;
+}
+
+// program = stmt*
+Function *parse(Token *tok) {
+    Node head = {};
+    Node *cur = &head;
+
+    while (tok->kind != TK_EOF)
+        cur = cur->next = stmt(&tok, tok);
+
+    Function *prog = calloc(1, sizeof(Function));
+    prog->node = head.next;
+    prog->locals = locals;
+    return prog;
 }
