@@ -17,7 +17,7 @@ static void gen_addr(Node *node) {
         return;
     }
 
-    error("not an lvalue");
+    error_tok(node->tok, "not an lvalue");
 }
 
 static void load(void) {
@@ -90,7 +90,7 @@ static void gen_expr(Node *node) {
         printf("  movzx %s, al\n", rd);
         return;
     default:
-        error("invalid expression");
+        error_tok(node->tok, "invalid expression");
     }
 }
 
@@ -147,7 +147,7 @@ static void gen_stmt(Node *node) {
         top--;
         return;
     default:
-        error("invalid statement");
+        error_tok(node->tok, "invalid statement");
     }
 }
 
