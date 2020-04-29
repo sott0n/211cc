@@ -75,4 +75,12 @@ assert 3 '{ {1; {2;} return 3;} }'
 assert 10 '{ i=0; while(i<10) i=i+1; return i; }'
 assert 55 '{ i=0; j=0; while(i<=10) {j=i+j; i=i+1;} return j; }'
 
+assert 3 '{ x=3; return *&x; }'
+assert 3 '{ x=3; y=&x; z=&y; return **z; }'
+assert 5 '{ x=3; y=5; return *(&x+8); }'
+assert 3 '{ x=3; y=5; return *(&y-8); }'
+assert 5 '{ x=3; y=&x; *y=5; return x; }'
+assert 7 '{ x=3; y=5; *(&x+8)=7; return y; }'
+assert 7 '{ x=3; y=5; *(&y-8)=7; return x; }'
+
 echo OK
