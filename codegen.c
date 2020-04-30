@@ -2,6 +2,7 @@
 
 static int top;
 static int labelseq = 1;
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static char *reg(int idx) {
     static char *r[] = {"r10", "r11", "r12", "r13", "r14", "r15"};
@@ -57,15 +58,49 @@ static void gen_expr(Node *node) {
         gen_addr(node->lhs);
         store();
         return;
-    case ND_FUNCALL:
+    case ND_FUNCALL: {
+        // Save all temporary registers to the stack before evaluating
+        // function arguments to allow each argument evaluation to use all
+        // temporary registers. This is a workaround for a register
+        // exhaustion issue when evaluating a long expression containing
+        // multiple function calls.
+        int top_orig = top;
+        top = 0;
+
         printf("  push r10\n");
         printf("  push r11\n");
+        printf("  push r12\n");
+        printf("  push r13\n");
+        printf("  push r14\n");
+        printf("  push r15\n");
+
+        int nargs = 0;
+        for (Node *arg = node->args; arg; arg = arg->next) {
+            gen_expr(arg);
+            printf("  push %s\n", reg(--top));
+            printf("  sub rsp, 8\n");
+            nargs++;
+        }
+
+        for (int i = nargs - 1; i >= 0; i--) {
+            printf("  add rsp, 8\n");
+            printf("  pop %s\n", argreg[i]);
+        }
+
         printf("  mov rax, 0\n");
         printf("  call %s\n", node->funcname);
-        printf("  mov %s, rax\n", reg(top++));
+
+        top = top_orig;
+        printf("  push r15\n");
+        printf("  push r14\n");
+        printf("  push r13\n");
+        printf("  push r12\n");
         printf("  push r11\n");
         printf("  push r10\n");
+
+        printf("  mov %s, rax\n", reg(top++));
         return;
+    }
     }
 
     gen_expr(node->lhs);
