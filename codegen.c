@@ -3,6 +3,7 @@
 static int top;
 static int labelseq = 1;
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static char *funcname;
 
 static char *reg(int idx) {
     static char *r[] = {"r10", "r11", "r12", "r13", "r14", "r15"};
@@ -197,7 +198,7 @@ static void gen_stmt(Node *node) {
     case ND_RETURN:
         gen_expr(node->lhs);
         printf("  mov rax, %s\n", reg(--top));
-        printf("  jmp .L.return\n");
+        printf("  jmp .L.return.%s\n", funcname);
         return;
     case ND_EXPR_STMT:
         gen_expr(node->lhs);
@@ -210,30 +211,32 @@ static void gen_stmt(Node *node) {
 
 void codegen(Function *prog) {
     printf(".intel_syntax noprefix\n");
-    printf(".global main\n");
-    printf("main:\n");
+    for (Function *fn = prog; fn; fn = fn->next) {
+        printf(".global %s\n", fn->name);
+        printf("%s:\n", fn->name);
+        funcname = fn->name;
 
-    // Prologue. r12-15 are callee-saved registers
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", prog->stack_size);
-    printf("  mov [rbp-8], r12\n");
-    printf("  mov [rbp-16], r13\n");
-    printf("  mov [rbp-24], r14\n");
-    printf("  mov [rbp-32], r15\n");
+        // Prologue. r12-15 are callee-saved registers
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        printf("  sub rsp, %d\n", fn->stack_size);
+        printf("  mov [rbp-8], r12\n");
+        printf("  mov [rbp-16], r13\n");
+        printf("  mov [rbp-24], r14\n");
+        printf("  mov [rbp-32], r15\n");
 
-    for (Node *n = prog->node; n; n = n->next) {
-        gen_stmt(n);
-        assert(top == 0);
+        for (Node *n = fn->node; n; n = n->next) {
+            gen_stmt(n);
+            assert(top == 0);
+        }
+        // Epilogue
+        printf(".L.return.%s:\n", funcname);
+        printf("  mov r12, [rbp-8]\n");
+        printf("  mov r13, [rbp-16]\n");
+        printf("  mov r14, [rbp-24]\n");
+        printf("  mov r15, [rbp-32]\n");
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n");
+        printf("  ret\n");
     }
-
-    // Epilogue
-    printf(".L.return:\n");
-    printf("  mov r12, [rbp-8]\n");
-    printf("  mov r13, [rbp-16]\n");
-    printf("  mov r14, [rbp-24]\n");
-    printf("  mov r15, [rbp-32]\n");
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
 }
