@@ -92,12 +92,12 @@ static void gen_expr(Node *node) {
         printf("  call %s\n", node->funcname);
 
         top = top_orig;
-        printf("  push r15\n");
-        printf("  push r14\n");
-        printf("  push r13\n");
-        printf("  push r12\n");
-        printf("  push r11\n");
-        printf("  push r10\n");
+        printf("  pop r15\n");
+        printf("  pop r14\n");
+        printf("  pop r13\n");
+        printf("  pop r12\n");
+        printf("  pop r11\n");
+        printf("  pop r10\n");
 
         printf("  mov %s, rax\n", reg(top++));
         return;
@@ -212,7 +212,7 @@ static void gen_stmt(Node *node) {
 void codegen(Function *prog) {
     printf(".intel_syntax noprefix\n");
     for (Function *fn = prog; fn; fn = fn->next) {
-        printf(".global %s\n", fn->name);
+        printf(".globl %s\n", fn->name);
         printf("%s:\n", fn->name);
         funcname = fn->name;
 
