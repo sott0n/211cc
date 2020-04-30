@@ -7,11 +7,11 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: test
+    - name: run test
       run: make test
-    - name: clean files 
+    - name: clean files
       run: make clean
