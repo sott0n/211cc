@@ -500,12 +500,7 @@ static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "sizeof")) {
         Node *node = unary(rest, tok->next);
         add_type(node);
-        if (node->ty->kind == TY_INT)
-            return new_num(4, tok);
-        if (node->ty->kind == TY_PTR)
-            return new_num(8, tok);
-
-        error_tok(tok, "Not support a type in `sizeof`");
+        return new_num(node->ty->size, tok);
     }
 
     if (tok->kind == TK_IDENT) {
