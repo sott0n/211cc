@@ -94,16 +94,51 @@ static void convert_keywords(Token *tok) {
             t->kind = TK_RESERVED;
 }
 
+static char *read_escaped_char(char *result, char *p) {
+    switch(*p) {
+    case 'a': *result = '\a'; return p + 1;
+    case 'b': *result = '\b'; return p + 1;
+    case 't': *result = '\t'; return p + 1;
+    case 'n': *result = '\n'; return p + 1;
+    case 'v': *result = '\v'; return p + 1;
+    case 'f': *result = '\f'; return p + 1;
+    case 'r': *result = '\r'; return p + 1;
+    case 'e': *result = 27; return p + 1;
+    default: *result = *p; return p + 1;
+    }
+}
+
 static Token *read_string_literal(Token *cur, char *start) {
     char *p = start + 1;
-    while (*p && *p != '"')
-        p++;
-    if (!*p)
-        error_at(start, "unclosed string literal");
+    char *end = p;
+
+    // Find the closing double-quote
+    for (; *end != '"'; end++) {
+        if (*end == '\0')
+            error_at(start, "unclosed string literal");
+        if (*end == '\\')
+            end++;
+    }
+
+    // Allocate a buffer that is large enough to hold the entire string
+    char *buf = malloc(end - p + 1);
+    int len = 0;
+
+    while (*p != '"') {
+        if (*p == '\\') {
+            char c;
+            p = read_escaped_char(&c, p + 1);
+            buf[len++] = c;
+        } else {
+            buf[len++] = *p++;
+        }
+    }
+
+    buf[len++] = '\0';
 
     Token *tok = new_token(TK_STR, cur, start, p - start + 1);
-    tok->contents = strndup(start + 1, p - start - 1);
-    tok->cont_len = p - start;
+    tok->contents = buf;
+    tok->cont_len = len;
     return tok;
 }
 
