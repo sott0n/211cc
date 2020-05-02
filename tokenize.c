@@ -95,7 +95,19 @@ static void convert_keywords(Token *tok) {
 }
 
 static char *read_escaped_char(char *result, char *p) {
-    switch(*p) {
+    switch (*p) {
+    case '0': case '1': case '2': case '3':
+    case '4': case '5': case '6': case '7': {
+        // Read an octal number
+        int r = *p++ - '0';
+        if ('0' <= *p && *p <= '7') {
+            r = (r << 3) | (*p++ - '0');
+            if ('0' <= *p && *p <= '7')
+                r = (r << 3) | (*p++ - '0');
+        }
+        *result = r;
+        return p;
+    }
     case 'a': *result = '\a'; return p + 1;
     case 'b': *result = '\b'; return p + 1;
     case 't': *result = '\t'; return p + 1;
