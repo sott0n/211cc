@@ -18,6 +18,7 @@ typedef enum {
     TK_RESERVED,    // Keywords or puctuators
     TK_NUM,         // Integer literals
     TK_IDENT,       // Identifiers
+    TK_STR,         // String literals
     TK_EOF,         // End of file
 } TokenKind;
 
@@ -29,6 +30,9 @@ struct Token {
     long val;       // if ty is TK_NUM, val is number.
     char *loc;      // token location
     int len;        // token length
+
+    char *contents; // String literal contents including terminating '\0'
+    char cont_len;  // String literal length
 };
 
 void error(char *fmt, ...);
@@ -48,8 +52,14 @@ struct Var {
     Var *next;      // next Var
     char *name;     // Variable name
     Type *ty;       // Type
-    int offset;     // Offset from RBP
     bool is_local;  // local or global
+
+    // Local variable
+    int offset;
+
+    // Global variable
+    char *contents;
+    int cont_len;
 };
 
 // Define a type of AST
