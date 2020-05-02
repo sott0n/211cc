@@ -14,6 +14,7 @@ static char *reg(int idx) {
 }
 
 static void gen_expr(Node *node);
+static void gen_stmt(Node *node);
 
 // pushes the given node's address to the stack
 static void gen_addr(Node *node) {
@@ -86,6 +87,11 @@ static void gen_expr(Node *node) {
         gen_expr(node->rhs);
         gen_addr(node->lhs);
         store(node->ty);
+        return;
+    case ND_STMT_EXPR:
+        for (Node *n = node->body; n; n = n->next)
+            gen_stmt(n);
+        top++;
         return;
     case ND_FUNCALL: {
         // Save all temporary registers to the stack before evaluating

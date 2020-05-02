@@ -530,9 +530,28 @@ static Node *func_args(Token **rest, Token *tok) {
     return head.next;
 }
 
-// primary = "(" expr ")" | "sizeof" unary | ident args? | str | num
-// args = "(" ")"
+// primary = "(" "{" stmt stmt* "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident args?
+//         | str
+//         | num
 static Node *primary(Token **rest, Token *tok) {
+    if (equal(tok, "(") && equal(tok->next, "{")) {
+        // This is a GNU statement expression
+        Node *node = new_node(ND_STMT_EXPR, tok);
+        node->body = compound_stmt(&tok, tok->next->next)->body;
+        *rest = skip(tok, ")");
+
+        Node *cur = node->body;
+        while (cur->next)
+            cur = cur->next;
+
+        if (cur->kind != ND_EXPR_STMT)
+            error_tok(cur->tok, "statement expression returning void is not supported");
+        return node;
+    }
+
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
         *rest = skip(tok, ")");
