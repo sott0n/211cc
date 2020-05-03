@@ -218,18 +218,36 @@ Token *tokenize(char *filename, char *p) {
     Token *cur = &head;
 
     while (*p) {
-        // Skip newline character.
+        // Skip newline character
         if (*p == '\n') {
             p++;
             continue;
         }
 
-        // Skip whitespace.
+        // Skip whitespace
         if (isspace(*p)) {
             p++;
             continue;
         }
 
+        // Skip line comments
+        if (startswith(p, "//")) {
+            p += 2;
+            while (*p != '\n')
+                p++;
+            continue;
+        }
+
+        // Skip block comments
+        if (startswith(p, "/*")) {
+            char *q = strstr(p + 2, "*/");
+            if (!q)
+                error_at(p, "unclosed block comment");
+            p = q + 2;
+            continue;
+        }
+
+        // Single literal
         if (*p == '"') {
             cur = read_string_literal(cur, p);
             p += cur->len;
