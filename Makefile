@@ -8,9 +8,11 @@ OBJS=$(SRCS:.c=.o)
 $(OBJS): 211cc.h
 
 test: 211cc
-		./test.sh
+		./211cc tests/tests.c > tmp.s
+		gcc -static -o tmp tmp.s
+		./tmp
 
 clean:
-		rm -f 211cc *.o *~ tmp*
+		rm -rf 211cc *.o *~ tmp* tests/*~ tests/*.o
 
 .PHONY: test clean
