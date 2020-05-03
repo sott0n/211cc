@@ -1,5 +1,8 @@
 #include "211cc.h"
 
+// Input filename
+static char *current_filename;
+
 // Input string
 static char *current_input;
 
@@ -11,10 +14,33 @@ void error(char *fmt, ...) {
     exit(1);
 }
 
-// Reports an error location and exit
+// Reports an error message in the following format and exit.
+//
+// foo.c:10: x = y + 1;
+//               ^ <error message here>
 static void verror_at(char *loc, char *fmt, va_list ap) {
-    int pos = loc - current_input;
-    fprintf(stderr, "%s\n", current_input);
+    // Find a line containing `loc`
+    char *line = loc;
+    while (current_input < line && line[-1] != '\n')
+        line--;
+
+    char *end = loc;
+    while (*end != '\n')
+        end++;
+
+    // Get a line number
+    int lineno = 1;
+    for (char *p = current_input; p < line; p++)
+        if (*p == '\n')
+            lineno++;
+
+    // Print out the line
+    int indent = fprintf(stderr, "%s:%d: ", current_filename, lineno);
+    fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+    // Show the error message
+    int pos = loc - line + indent;
+
     fprintf(stderr, "%*s", pos, "");
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
@@ -184,8 +210,10 @@ static Token *read_string_literal(Token *cur, char *start) {
 }
 
 // Tokenize a given string and returns new tokens
-Token *tokenize(char *p) {
+Token *tokenize(char *filename, char *p) {
+    current_filename = filename;
     current_input = p;
+
     Token head = {};
     Token *cur = &head;
 
