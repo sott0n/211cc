@@ -39,6 +39,9 @@ static char *read_file(char *path) {
     if (nread == 0 || buf[nread - 1] != '\n')
         buf[nread++] = '\n';
     buf[nread] = '\0';
+
+    // Emit a .file direc"tive for the assembler.
+    printf(".file 1 \"%s\"\n", path);
     return buf;
 }
 
