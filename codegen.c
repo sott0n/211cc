@@ -39,7 +39,7 @@ static void gen_addr(Node *node) {
 
 // Load a value from where the stack top is pointing to.
 static void load(Type *ty) {
-    if (ty->kind == TY_ARRAY) {
+    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT) {
         // If it is an array, do nothing because in general we can't load
         // an entire array to a register. As a result, the result of an
         // evaluation of an array becomes not the array itself but the
@@ -60,10 +60,17 @@ static void store(Type *ty) {
     char *rd = reg(top - 1);
     char *rs = reg(top - 2);
 
-    if (ty->size == 1)
+    if (ty->kind == TY_STRUCT) {
+        for (int i = 0; i < ty->size; i++) {
+            printf("  mov al, [%s+%d]\n", rs, i);
+            printf("  mov [%s+%d], al\n", rd, i);
+        }
+    } else if (ty->size == 1) {
         printf("  mov [%s], %sb\n", rd, rs);
-    else
+    } else {
         printf("  mov [%s], %s\n", rd, rs);
+    }
+
     top--;
 }
 
