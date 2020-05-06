@@ -1,7 +1,7 @@
 #include "211cc.h"
 
 Type *ty_char = &(Type){TY_CHAR, 1, 1};
-Type *ty_int = &(Type){TY_INT, 8, 8};
+Type *ty_int = &(Type){TY_INT, 4, 4};
 
 static Type *new_type(TypeKind kind, int size, int align) {
     Type *ty = malloc(sizeof(Type));
