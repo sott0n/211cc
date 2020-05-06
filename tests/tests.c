@@ -41,6 +41,14 @@ int sub_char(char a, char b, char c) {
     return a - b - c;
 }
 
+int sub_short(short a, short b, short c) {
+    return a - b - c;
+}
+
+int sub_long(long a, long b, long c) {
+    return a - b - c;
+}
+
 int fib(int x) {
     if (x<=1)
         return 1;
@@ -260,6 +268,9 @@ int main() {
 
     assert(8, ({ struct t {int a; int b;} x; struct t y; sizeof(y); }), "({ struct t {int a; int b;} x; struct t y; sizeof(y); })");
     assert(8, ({ struct t {int a; int b;}; struct t y; sizeof(y); }), "({ struct t {int a; int b;}; struct t y; sizeof(y); })");
+
+    assert(1, sub_short(7, 3, 3), "sub_short(7, 3, 3)");
+    assert(1, sub_long(7, 3, 3), "long_short(7, 3, 3)");
 
     printf("OK\n");
     return 0;
