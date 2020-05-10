@@ -57,3 +57,5 @@ dkms.conf
 tmp*
 211cc
 .vscode/
+.tags
+*.swp
