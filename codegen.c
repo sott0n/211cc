@@ -15,6 +15,16 @@ static char *reg(int idx) {
     return r[idx];
 }
 
+static char *regx(Type *ty, int idx) {
+    if (ty->base || size_of(ty) == 8)
+        return reg(idx);
+
+    static char *r[] = {"r10d", "r11d", "r12d", "r13d", "r14d", "r15d"};
+    if (idx < 0 || sizeof(r) / sizeof(*r) <= idx)
+        error("register out of range: $d", idx);
+    return r[idx];
+}
+
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
@@ -51,17 +61,23 @@ static void load(Type *ty) {
         return;
     }
 
-    char *r = reg(top - 1);
+    char *rs = reg(top - 1);
+    char *rd = regx(ty, top -1);
     int sz = size_of(ty);
 
+    // When we load a char or a short value to a register, we always
+    // extend them to the size of int, so we can assume the lower half of
+    // a register always contains a valid value. The upper half of a
+    // register for char, short and int may contain garbage. When we load
+    // a long value to a register, it simply occupies the entire register.
     if (sz == 1)
-        printf("  movsx %s, byte ptr [%s]\n", r, r);
+        printf("  movsx %s, byte ptr [%s]\n", rd, rs);
     else if (sz == 2)
-        printf("  movsx %s, word ptr [%s]\n", r, r);
+        printf("  movsx %s, word ptr [%s]\n", rd, rs);
     else if (sz == 4)
-        printf("  movsx %s, dword ptr [%s]\n", r, r);
+        printf("  mov %s, dword ptr [%s]\n", rd, rs);
     else
-        printf("  mov %s, [%s]\n", r, r);
+        printf("  mov %s, [%s]\n", rd, rs);
 }
 
 static void store(Type *ty) {
@@ -87,18 +103,19 @@ static void store(Type *ty) {
     top--;
 }
 
-static void cast(Type *ty) {
-    if (ty->kind == TY_VOID)
+static void cast(Type *from, Type *to) {
+    if (to->kind == TY_VOID)
         return;
 
     char *r = reg(top - 1);
     
-    int sz = size_of(ty);
-    if (sz == 1)
+    if (size_of(to) == 1)
         printf("  movsx %s, %sb\n", r, r);
-    else if (sz == 2)
+    else if (size_of(to) == 2)
         printf("  movsx %s, %sw\n", r, r);
-    else if (sz == 4)
+    else if (size_of(to) == 4)
+        printf("  mov %sd, %sd\n", r, r);
+    else if (!from->base && size_of(from) < 8)
         printf("  movsx %s, %sd\n", r, r);
 }
 
@@ -137,7 +154,7 @@ static void gen_expr(Node *node) {
         return;
     case ND_CAST:
         gen_expr(node->lhs);
-        cast(node->ty);
+        cast(node->lhs->ty, node->ty);
         return;
     case ND_FUNCALL: {
         // Save all temporary registers to the stack before evaluating
@@ -187,8 +204,8 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     gen_expr(node->rhs);
 
-    char *rd = reg(top - 2);
-    char *rs = reg(top - 1);
+    char *rd = regx(node->lhs->ty, top - 2);
+    char *rs = regx(node->lhs->ty, top - 1);
     top--;
 
     switch (node->kind) {
@@ -202,10 +219,17 @@ static void gen_expr(Node *node) {
         printf("  imul %s, %s\n", rd, rs);
         return;
     case ND_DIV:
-        printf("  mov rax, %s\n", rd);
-        printf("  cqo\n");
-        printf("  idiv %s\n", rs);
-        printf("  mov %s, rax\n", rd);
+        if (size_of(node->ty) == 8) {
+            printf("  mov rax, %s\n", rd);
+            printf("  cqo\n");
+            printf("  idiv %s\n", rs);
+            printf("  mov %s, rax\n", rd);
+        } else {
+            printf("  mov eax, %s\n", rd);
+            printf("  cdq\n");
+            printf("  idiv %s\n", rs);
+            printf("  mov %s, eax\n", rd);
+        }
         return;
     case ND_EQ:
         printf("  cmp %s, %s\n", rd, rs);
