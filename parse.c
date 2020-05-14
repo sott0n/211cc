@@ -152,13 +152,15 @@ static Var *new_lvar(char *name, Type *ty) {
     return var;
 }
 
-static Var *new_gvar(char *name, Type *ty) {
+static Var *new_gvar(char *name, Type *ty, bool emit) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
     var->ty = ty;
     var->is_local = false;
-    var->next = globals;
-    globals = var;
+    if (emit) {
+        var->next = globals;
+        globals = var;
+    }
     push_scope(name)->var = var;
     return var;
 }
@@ -172,7 +174,7 @@ static char *new_label(void) {
 
 static Var *new_string_literal(char *p, int len) {
     Type *ty = array_of(ty_char, len);
-    Var *var = new_gvar(new_label(), ty);
+    Var *var = new_gvar(new_label(), ty, true);
     var->contents = p;
     var->cont_len = len;
     return var;
@@ -962,8 +964,20 @@ static Node *primary(Token **rest, Token *tok) {
         // Function call
         if (equal(tok->next, "(")) {
             Node *node = new_node(ND_FUNCALL, tok);
+            VarScope *sc = find_var(tok);
+
             node->funcname = strndup(tok->loc, tok->len);
             node->args = func_args(rest, tok->next->next);
+            add_type(node);
+
+            if (sc) {
+                if (!sc->var || sc->var->ty->kind != TY_FUNC)
+                    error_tok(tok, "not a function");
+                node->ty = sc->var->ty->return_ty;
+            } else {
+                warn_tok(node->tok, "implicit declaration of a function");
+                node->ty = ty_int;
+            }
             return node;
         }
 
@@ -1015,15 +1029,15 @@ Program *parse(Token *tok) {
 
         // Function
         if (ty->kind == TY_FUNC) {
-            if (consume(&tok, tok, ";"))
-                continue;
-            cur = cur->next = funcdef(&tok, start);
+            new_gvar(get_ident(ty->name), ty, false);
+            if (!consume(&tok, tok, ";"))
+                cur = cur->next = funcdef(&tok, start);
             continue;
         }
 
         // Global variable
         for (;;) {
-            new_gvar(get_ident(ty->name), ty);
+            new_gvar(get_ident(ty->name), ty, true);
             if (consume(&tok, tok, ";"))
                 break;
             tok = skip(tok, ",");
