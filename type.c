@@ -136,5 +136,21 @@ void add_type(Node *node) {
         node->ty = stmt->lhs->ty;
         return;
     }
+    case ND_FUNCALL: {
+        node->ty = node->func_ty->return_ty;
+
+        Type *ty = node->func_ty->params;
+        Node head = {};
+        Node *cur = &head;
+
+        for (Node *arg = node->args; arg; arg = arg->next) {
+            if (!ty)
+                return;
+            cur = cur->next = new_cast(arg, ty);
+            ty = ty->next;
+        }
+        node->args = head.next;
+        return;
+    }
     }
 }

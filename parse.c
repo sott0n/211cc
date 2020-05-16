@@ -974,15 +974,14 @@ static Node *primary(Token **rest, Token *tok) {
 
             node->funcname = strndup(tok->loc, tok->len);
             node->args = func_args(rest, tok->next->next);
-            add_type(node);
 
             if (sc) {
                 if (!sc->var || sc->var->ty->kind != TY_FUNC)
                     error_tok(tok, "not a function");
-                node->ty = sc->var->ty->return_ty;
+                node->func_ty = sc->var->ty;
             } else {
                 warn_tok(node->tok, "implicit declaration of a function");
-                node->ty = ty_int;
+                node->func_ty = func_type(ty_int);
             }
             return node;
         }
