@@ -571,7 +571,7 @@ static bool is_typename(Token *tok) {
 
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
-//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "for" "(" (expr? ";" | declaration) expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "{" compound-stmt
 //      | expr ";"
@@ -602,9 +602,14 @@ static Node *stmt(Token **rest, Token *tok) {
         Node *node = new_node(ND_FOR, tok);
         tok = skip(tok->next, "(");
 
-        if (!equal(tok, ";"))
-            node->init = expr_stmt(&tok, tok);
-        tok = skip(tok, ";");
+        enter_scope();
+        if (is_typename(tok)) {
+            node->init = declaration(&tok, tok);
+        } else {
+            if (!equal(tok, ";"))
+                node->init = expr_stmt(&tok, tok);
+            tok = skip(tok, ";");
+        }
 
         if (!equal(tok, ";"))
             node->cond = expr(&tok, tok);
@@ -615,6 +620,7 @@ static Node *stmt(Token **rest, Token *tok) {
         tok = skip(tok, ")");
 
         node->then = stmt(rest, tok);
+        leave_scope();
         return node;
     }
 
