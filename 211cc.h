@@ -155,6 +155,7 @@ typedef enum {
     TY_SHORT,
     TY_INT,
     TY_LONG,
+    TY_ENUM,
     TY_PTR,
     TY_FUNC,
     TY_ARRAY,
@@ -206,6 +207,7 @@ int align_to(int n, int align);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 Type *array_of(Type *base, int size);
+Type *enum_type(void);
 int size_of(Type *ty);
 void add_type(Node *node);
 
