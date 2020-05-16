@@ -109,6 +109,13 @@ static void cast(Type *from, Type *to) {
 
     char *r = reg(top - 1);
     
+    if (to->kind == TY_BOOL) {
+        printf("  cmp %s, 0\n", r);
+        printf("  setne %sb\n", r);
+        printf("  movzx %s, %sb\n", r, r);
+        return;
+    }
+
     if (size_of(to) == 1)
         printf("  movsx %s, %sb\n", r, r);
     else if (size_of(to) == 2)

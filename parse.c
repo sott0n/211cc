@@ -256,12 +256,13 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
     // keyword "void" so far. With this, we can use a switch statement
     // as you can see below.
     enum {
-        VOID = 1 << 0,
-        CHAR = 1 << 2,
-        SHORT = 1 << 4,
-        INT = 1 << 6,
-        LONG = 1 << 8,
-        OTHER = 1 << 10,
+        VOID  = 1 << 0,
+        BOOL  = 1 << 2,
+        CHAR  = 1 << 4,
+        SHORT = 1 << 6,
+        INT   = 1 << 8,
+        LONG  = 1 << 10,
+        OTHER = 1 << 12,
     };
 
     Type *ty = ty_int;
@@ -299,6 +300,8 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
         // Handle built-in types.
         if (equal(tok, "void"))
             counter += VOID;
+        else if (equal(tok, "_Bool"))
+            counter += BOOL;
         else if (equal(tok, "char"))
             counter += CHAR;
         else if (equal(tok, "short"))
@@ -313,6 +316,9 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
         switch (counter) {
         case VOID:
             ty = ty_void;
+            break;
+        case BOOL:
+            ty = ty_bool;
             break;
         case CHAR:
             ty = ty_char;
@@ -466,7 +472,7 @@ static Node *declaration(Token **rest, Token *tok) {
 // Returns true if a given token represents a type
 static bool is_typename(Token *tok) {
     static char *kw[] = {
-        "void", "char", "short", "int", "long", "struct", "union",
+        "void", "_Bool", "char", "short", "int", "long", "struct", "union",
         "typedef",
     };
 
