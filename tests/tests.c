@@ -416,6 +416,10 @@ int main() {
     assert(55, ({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j;}), "({ int j=0; for (int i=0; i<=10; i=i+1;) j=j+i; j;})");
     assert(3, ({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i;}), "({ int i=3; int j=0; for (int i=0; i<=10; i=i+1;) j=j+i; i;})");
 
+    assert(3, (1,2,3), "(1,2,3)");
+    assert(5, ({ int i=1, j=3; (i=5,j)=6; i;}), "({ int i=1, j=3; (i=5,j)=6; i;})");
+    assert(6, ({ int i=1, j=3; (i=5,j)=6; j;}), "({ int i=1, j=3; (i=5,j)=6; j;})");
+
     printf("OK\n");
     return 0;
 }

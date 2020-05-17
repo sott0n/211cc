@@ -44,6 +44,11 @@ static void gen_addr(Node *node) {
         gen_addr(node->lhs);
         printf("  add %s, %d\n", reg(top - 1), node->member->offset);
         return;
+    case ND_COMMA:
+        gen_expr(node->lhs);
+        top--;
+        gen_addr(node->rhs);
+        return;
     }
 
     error_tok(node->tok, "not an lvalue");
@@ -162,6 +167,11 @@ static void gen_expr(Node *node) {
     case ND_CAST:
         gen_expr(node->lhs);
         cast(node->lhs->ty, node->ty);
+        return;
+    case ND_COMMA:
+        gen_expr(node->lhs);
+        top--;
+        gen_expr(node->rhs);
         return;
     case ND_FUNCALL: {
         // Save all temporary registers to the stack before evaluating
