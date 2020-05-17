@@ -420,6 +420,15 @@ int main() {
     assert(5, ({ int i=1, j=3; (i=5,j)=6; i;}), "({ int i=1, j=3; (i=5,j)=6; i;})");
     assert(6, ({ int i=1, j=3; (i=5,j)=6; j;}), "({ int i=1, j=3; (i=5,j)=6; j;})");
 
+    assert(7, ({ int i=2; i+=5; i; }), "({ int i=2; i+=5; i; })");
+    assert(7, ({ int i=2; i+=5; }), "({ int i=2; i+=5; })");
+    assert(3, ({ int i=5; i-=2; i; }), "({ int i=5; i-=2; i; })");
+    assert(3, ({ int i=5; i-=2; }), "({ int i=5; i-=2; })");
+    assert(6, ({ int i=2; i*=3; i; }), "({ int i=2; i*=3; i; })");
+    assert(6, ({ int i=2; i*=3; }), "({ int i=2; i*=3; })");
+    assert(3, ({ int i=6; i/=2; i; }), "({ int i=6; i/=2; i; })");
+    assert(3, ({ int i=6; i/=2; }), "({ int i=6; i/=2; })");
+
     printf("OK\n");
     return 0;
 }

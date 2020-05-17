@@ -218,6 +218,7 @@ static void gen_expr(Node *node) {
     }
     }
 
+    // Binary expressions
     gen_expr(node->lhs);
     gen_expr(node->rhs);
 
