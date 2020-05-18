@@ -131,6 +131,20 @@ static void cast(Type *from, Type *to) {
         printf("  movsx %s, %sd\n", r, r);
 }
 
+static void divmod(Node *node, char *rd, char *rs, char *r64, char *r32) {
+    if (size_of(node->ty) == 8) {
+        printf("  mov rax, %s\n", rd);
+        printf("  cqo\n");
+        printf("  idiv %s\n", rs);
+        printf("  mov %s, %s\n", rd, r64);
+    } else {
+        printf("  mov eax, %s\n", rd);
+        printf("  cdq\n");
+        printf("  idiv %s\n", rs);
+        printf("  mov %s, %s\n", rd, r32);
+    }
+}
+
 // generate code for a given node
 static void gen_expr(Node *node) {
     printf(".loc 1 %d\n", node->tok->lineno);
@@ -247,17 +261,10 @@ static void gen_expr(Node *node) {
         printf("  imul %s, %s\n", rd, rs);
         return;
     case ND_DIV:
-        if (size_of(node->ty) == 8) {
-            printf("  mov rax, %s\n", rd);
-            printf("  cqo\n");
-            printf("  idiv %s\n", rs);
-            printf("  mov %s, rax\n", rd);
-        } else {
-            printf("  mov eax, %s\n", rd);
-            printf("  cdq\n");
-            printf("  idiv %s\n", rs);
-            printf("  mov %s, eax\n", rd);
-        }
+        divmod(node, rd, rs, "rax", "eax");
+        return;
+    case ND_MOD:
+        divmod(node, rd, rs, "rdx", "edx");
         return;
     case ND_EQ:
         printf("  cmp %s, %s\n", rd, rs);
