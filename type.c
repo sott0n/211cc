@@ -116,6 +116,7 @@ void add_type(Node *node) {
         node->ty = node->lhs->ty;
         return;
     case ND_NOT:
+    case ND_BITNOT:
         node->ty = node->lhs->ty;
         return;
     case ND_VAR:
