@@ -173,6 +173,12 @@ static void gen_expr(Node *node) {
         top--;
         gen_expr(node->rhs);
         return;
+    case ND_NOT:
+        gen_expr(node->lhs);
+        printf("  cmp %s, 0\n", reg(top - 1));
+        printf("  sete %sb\n", reg(top - 1));
+        printf("  movzx %s, %sb\n", reg(top - 1), reg(top - 1));
+        return;
     case ND_FUNCALL: {
         // Save all temporary registers to the stack before evaluating
         // function arguments to allow each argument evaluation to use all
