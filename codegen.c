@@ -395,6 +395,13 @@ static void gen_stmt(Node *node) {
             error_tok(node->tok, "stray continue");
         printf("  jmp .L.continue.%d\n", contseq);
         return;
+    case ND_GOTO:
+        printf("  jmp .L.label.%s.%s\n", funcname, node->label_name);
+        return;
+    case ND_LABEL:
+        printf(".L.label.%s.%s:\n", funcname, node->label_name);
+        gen_stmt(node->lhs);
+        return;
     case ND_RETURN:
         gen_expr(node->lhs);
         printf("  mov rax, %s\n", reg(--top));
