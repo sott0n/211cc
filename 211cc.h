@@ -80,6 +80,8 @@ typedef enum {
     ND_BITXOR,      // ^
     ND_LOGAND,      // &&
     ND_LOGOR,       // ||
+    ND_SHL,         // <<
+    ND_SHR,         // >>
     ND_EQ,          // ==
     ND_NE,          // !=
     ND_LT,          // <
