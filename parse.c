@@ -239,6 +239,10 @@ static Var *new_string_literal(char *p, int len) {
     return var;
 }
 
+static bool is_end(Token *tok) {
+    return equal(tok, "}") || (equal(tok, ",") && equal(tok->next, "}"));
+}
+
 static Token *expect_end(Token *tok) {
     if (equal(tok, "}"))
         return tok->next;
@@ -634,7 +638,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
         tok = skip(tok, "{");
         Initializer *init = new_init(ty, ty->array_len, NULL, tok);
 
-        for (int i = 0; i < ty->array_len; i++) {
+        for (int i = 0; i < ty->array_len && !is_end(tok); i++) {
             if (i > 0)
                 tok = skip(tok, ",");
             init->children[i] = initializer(&tok, tok, ty->base);
@@ -649,13 +653,16 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
 static Node *create_lvar_init(Node *cur, Initializer *init, Var *var, Type *ty, int offset) {
     if (ty->kind == TY_ARRAY) {
         int sz = size_of(ty->base);
-        for (int i = 0; i < ty->array_len; i++)
-            cur = create_lvar_init(cur, init->children[i], var, ty->base, offset + sz * i);
+        for (int i = 0; i < ty->array_len; i++) {
+            Initializer *child = init ? init->children[i] : NULL;
+            cur = create_lvar_init(cur, child, var, ty->base, offset + sz * i);
+        }
         return cur;
     }
 
     // Construct a node representing `*(&var+offset) = expr`.
-    Token *tok = init->tok;
+    Token *tok = init ? init->tok : var->ty->name;
+    Node *expr = init ? init->expr : new_num(0, tok);
     Node *ref = new_unary(ND_ADDR, new_var_node(var, tok), tok);
     Node *off = new_num(offset, tok);
 
@@ -665,7 +672,7 @@ static Node *create_lvar_init(Node *cur, Initializer *init, Var *var, Type *ty, 
                              new_cast(new_binary(ND_ADD, ref, off, tok),
                                       pointer_to(ty)),
                              tok),
-                   init->expr, tok);
+                   expr, tok);
     add_type(expr2);
     cur->next = new_unary(ND_EXPR_STMT, expr2, tok);
     return cur->next;
