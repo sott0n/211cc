@@ -632,6 +632,25 @@ static Node *declaration(Token **rest, Token *tok) {
     return node;
 }
 
+static void skip_excess_elements(Token **rest, Token *tok) {
+    while (!consume_end(&tok, tok)) {
+        tok = skip(tok, ",");
+        if (equal(tok, "{"))
+            skip_excess_elements(&tok, tok->next);
+        else
+            assign(&tok, tok);
+    }
+    *rest = tok;
+}
+
+static Token *skip_end(Token *tok) {
+    if (consume_end(&tok, tok))
+        return tok;
+    warn_tok(tok, "excess elements in initializer");
+    skip_excess_elements(&tok, tok);
+    return tok;
+}
+
 // initializer = "{" initializer ("," initializer)* ","? "}"
 static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
     if (ty->kind == TY_ARRAY) {
@@ -643,7 +662,7 @@ static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
                 tok = skip(tok, ",");
             init->children[i] = initializer(&tok, tok, ty->base);
         }
-        *rest = expect_end(tok);
+        *rest = skip_end(tok);
         return init;
     }
     
