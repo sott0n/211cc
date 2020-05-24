@@ -654,7 +654,15 @@ static Token *skip_end(Token *tok) {
 
 // string-initializer = string-literal
 static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
+    // Initialize a char array with a string literal
+    if (ty->is_incomplete) {
+        ty->size = tok->cont_len;
+        ty->array_len = tok->cont_len;
+        ty->is_incomplete = false;
+    }
+
     Initializer *init = new_init(ty, ty->array_len, NULL, tok);
+
     int len = (ty->array_len < tok->cont_len)
         ? ty->array_len : tok->cont_len;
 
@@ -669,6 +677,20 @@ static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
 // array-initializer = "{" initializer ("," initializer)* ","? "}"
 static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     tok = skip(tok, "{");
+
+    if (ty->is_incomplete) {
+        int i = 0;
+        for (Token *tok2 = tok; !is_end(tok2); i++) {
+            if (i > 0)
+                tok2 = skip(tok2, ",");
+            initializer(&tok2, tok2, ty->base);
+        }
+
+        ty->size = size_of(ty->base) * i;
+        ty->array_len = i;
+        ty->is_incomplete = false;
+    }
+
     Initializer *init = new_init(ty, ty->array_len, NULL, tok);
 
     for (int i = 0; i < ty->array_len && !is_end(tok); i++) {
