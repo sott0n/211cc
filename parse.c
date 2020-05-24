@@ -702,13 +702,47 @@ static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
     return init;
 }
 
-// initializer = string-initializer | array-initializer | assign
+// struct-initializer = "{" initializer ("," initializer)* ","? "}"
+static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
+    if (!equal(tok, "{")) {
+        Token *tok2;
+        Node *expr = assign(&tok2, tok);
+        add_type(expr);
+        if (expr->ty->kind == TY_STRUCT) {
+            Initializer *init = new_init(ty, 0, expr, tok);
+            *rest = tok2;
+            return init;
+        }
+    }
+
+    int len = 0;
+    for (Member *mem = ty->members; mem; mem = mem->next)
+        len++;
+
+    Initializer *init = new_init(ty, len, NULL, tok);
+    tok = skip(tok, "{");
+
+    int i = 0;
+    for (Member *mem = ty->members; mem && !is_end(tok); mem = mem->next, i++) {
+        if (i > 0)
+            tok = skip(tok, ",");
+        init->children[i] = initializer(&tok, tok, mem->ty);
+    }
+    *rest = skip_end(tok);
+    return init;
+}
+
+// initializer = string-initializer | array-initializer | struct-initializer
+//             | assign
 static Initializer *initializer(Token **rest, Token *tok, Type *ty) {
     if (ty->kind == TY_ARRAY && ty->base->kind == TY_CHAR && tok->kind == TK_STR)
         return string_initializer(rest, tok, ty);
 
     if (ty->kind == TY_ARRAY)
         return array_initializer(rest, tok, ty);
+
+    if (ty->kind == TY_STRUCT)
+        return struct_initializer(rest, tok, ty);
 
     return new_init(ty, 0, assign(rest, tok), tok);
 }
@@ -719,6 +753,15 @@ static Node *create_lvar_init(Node *cur, Initializer *init, Var *var, Type *ty, 
         for (int i = 0; i < ty->array_len; i++) {
             Initializer *child = init ? init->children[i] : NULL;
             cur = create_lvar_init(cur, child, var, ty->base, offset + sz * i);
+        }
+        return cur;
+    }
+
+    if (ty->kind == TY_STRUCT && (!init || init->len)) {
+        int i = 0;
+        for (Member *mem = ty->members; mem; mem = mem->next, i++) {
+            Initializer *child = init ? init->children[i] : NULL;
+            cur = create_lvar_init(cur, child, var, mem->ty, offset + mem->offset);
         }
         return cur;
     }
