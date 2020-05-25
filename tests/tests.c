@@ -7,10 +7,16 @@
 
 int printf();
 int exit();
+int strcmp(char *p, char *q);
 
 int g1, g2[4];
 
 typedef int MyInt, MyInt2[4];
+
+char g3 = 3;
+short g4 = 4;
+int g5 = 5;
+long g6 = 6;
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
@@ -641,6 +647,11 @@ int main() {
     assert(1, ({ typedef struct {int a,b;} T; T x={1,2}; T y=x; y.a; }), "({ typedef struct {int a, b;} T; T x={1,2}; T y=x; y.a; })");
     assert(5, ({ typedef struct {int a,b,c,d,e,f;} T; T x={1,2,3,4,5,6}; T y=x; y.e; }), "({ typedef struct {int a,b,c,d,e,f;} T; T x={1,2,3,4,5,6}; T y=x; y.e; })");
     assert(2, ({ typedef struct {int a,b;} T; T x={1,2}; T y, z; z=y=x; z.b; }), "({ typedef struct {int a,b;} T; T x={1,2}; T y, z; z=y=x; z.b; })");
+
+    assert(3, g3, "g3");
+    assert(4, g4, "g4");
+    assert(5, g5, "g5");
+    assert(6, g6, "g6");
 
     printf("OK\n");
     return 0;

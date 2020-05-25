@@ -488,13 +488,29 @@ static void emit_data(Program *prog) {
     for (Var *var = prog->globals; var; var = var->next) {
         printf("%s:\n", var->name);
 
-        if (!var->contents) {
+        if (!var->initializer) {
             printf("  .zero %d\n", size_of(var->ty));
             continue;
         }
+        
+        int offset = 0;
+        for (GvarInitializer *init = var->initializer; init; init = init->next) {
+            if (offset < init->offset)
+                printf("  .zero %d\n", init->offset - offset);
+            offset = init->offset + init->sz;
 
-        for (int i = 0; i < var->cont_len; i++)
-            printf("  .byte %d\n", var->contents[i]);
+            if (init->sz == 1)
+                printf("  .byte %ld\n", init->val);
+            else if (init->sz == 2)
+                printf("  .short %ld\n", init->val);
+            else if (init->sz == 4)
+                printf("  .long %ld\n", init->val);
+            else
+                printf("  .quad %ld\n", init->val);
+        }
+
+        if (offset < size_of(var->ty))
+            printf("  .zero %d\n", size_of(var->ty) - offset);
     }
 }
 

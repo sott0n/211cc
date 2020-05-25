@@ -11,6 +11,7 @@
 
 typedef struct Type Type;
 typedef struct Member Member;
+typedef struct GvarInitializer GvarInitializer;
 
 //
 // tokenize.c
@@ -59,6 +60,8 @@ struct Var {
     char *name;     // Variable name
     Type *ty;       // Type
     bool is_local;  // local or global
+
+    GvarInitializer *initializer;
 
     // Local variable
     int offset;
@@ -153,6 +156,14 @@ struct Node {
     Var *var;
 
     // Integer literal
+    long val;
+};
+
+// Global variable initializer
+struct GvarInitializer {
+    GvarInitializer *next;
+    int offset;
+    int sz;
     long val;
 };
 

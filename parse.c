@@ -83,10 +83,13 @@ static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Node *declaration(Token **rest, Token *tok);
 static Initializer *initializer(Token **rest, Token *tok, Type *ty);
 static Node *lvar_initializer(Token **rest, Token *tok, Var *var);
+static GvarInitializer *gvar_initializer(Token **rest, Token *tok, Type *ty);
+static GvarInitializer *gvar_init_string(char *p, int len);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
+static long eval(Node *node);
 static Node *assign(Token **rest, Token *tok);
 static Node *logor(Token **rest, Token *tok);
 static long const_expr(Token **rest, Token *tok);
@@ -235,8 +238,7 @@ static char *new_label(void) {
 static Var *new_string_literal(char *p, int len) {
     Type *ty = array_of(ty_char, len);
     Var *var = new_gvar(new_label(), ty, true);
-    var->contents = p;
-    var->cont_len = len;
+    var->initializer = gvar_init_string(p, len);
     return var;
 }
 
@@ -803,6 +805,50 @@ static Node *lvar_initializer(Token **rest, Token *tok, Var *var) {
     Node *node = new_node(ND_BLOCK, tok);
     node->body = head.next;
     return node;
+}
+
+static GvarInitializer *
+new_gvar_init_val(GvarInitializer *cur, int offset, int sz, int val) {
+    GvarInitializer *init = calloc(1, sizeof(GvarInitializer));
+    init->sz = sz;
+    init->val = val;
+    init->offset = offset;
+    cur->next = init;
+    return init;
+}
+
+static GvarInitializer *
+create_gvar_init(GvarInitializer *cur, Initializer *init, Type *ty, int offset) {
+    if (ty->kind == TY_ARRAY) {
+        int sz = size_of(ty->base);
+        for (int i = 0; i < ty->array_len; i++)
+            if (init->children[i])
+                cur = create_gvar_init(cur, init->children[i], ty->base, offset + sz * i);
+        return cur;
+    }
+
+    long val = eval(init->expr);
+    return new_gvar_init_val(cur, offset, size_of(ty), val);
+}
+
+// Initializers for global variables are evaluated at compile-time
+// and embedded to .data section. This function converts Initializer
+// objects to GvarInitializer objects. It is a compile error if an
+// initializer list contains a non-constant expression.
+static GvarInitializer *gvar_initializer(Token **rest, Token *tok, Type *ty) {
+    Initializer *init = initializer(rest, tok, ty);
+    GvarInitializer head = {};
+    create_gvar_init(&head, init, ty, 0);
+    return head.next;
+}
+
+// Construct GvarInitializer objects for a given string literal
+static GvarInitializer *gvar_init_string(char *p, int len) {
+    GvarInitializer head = {};
+    GvarInitializer *cur = &head;
+    for (int i = 0; i < len; i++)
+        cur = new_gvar_init_val(cur, i, 1, p[i]);
+    return head.next;
 }
 
 // Returns true if a given token represents a type
@@ -1743,7 +1789,9 @@ Program *parse(Token *tok) {
 
         // Global variable
         for (;;) {
-            new_gvar(get_ident(ty->name), ty, true);
+            Var *var = new_gvar(get_ident(ty->name), ty, true);
+            if (equal(tok, "="))
+                var->initializer = gvar_initializer(&tok, tok->next, ty);
             if (consume(&tok, tok, ";"))
                 break;
             tok = skip(tok, ",");
