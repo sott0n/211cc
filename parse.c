@@ -561,7 +561,7 @@ static Type *enum_specifier(Token **rest, Token *tok) {
     // Read an enum-list
     int i = 0;
     int val = 0;
-    while (!consume_end(&tok, tok)) {
+    while (!is_end(tok)) {
         if (i++ > 0)
             tok = skip(tok, ",");
 
@@ -578,7 +578,7 @@ static Type *enum_specifier(Token **rest, Token *tok) {
 
     if (tag)
         push_tag_scope(tag, ty);
-    *rest = tok;
+    *rest = expect_end(tok);
     return ty;
 }
 
@@ -678,8 +678,9 @@ static Initializer *string_initializer(Token **rest, Token *tok, Type *ty) {
 }
 
 // array-initializer = "{" initializer ("," initializer)* ","? "}"
+//                   | initializer ("," initializer)* ","
 static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
-    tok = skip(tok, "{");
+    bool has_paren = consume(&tok, tok, "{");
 
     if (ty->is_incomplete) {
         int i = 0;
@@ -701,11 +702,15 @@ static Initializer *array_initializer(Token **rest, Token *tok, Type *ty) {
             tok = skip(tok, ",");
         init->children[i] = initializer(&tok, tok, ty->base);
     }
-    *rest = skip_end(tok);
+
+    if (has_paren)
+        tok = skip_end(tok);
+    *rest = tok;
     return init;
 }
 
 // struct-initializer = "{" initializer ("," initializer)* ","? "}"
+//                    | initializer ("," initializer)* ","
 static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
     if (!equal(tok, "{")) {
         Token *tok2;
@@ -723,7 +728,7 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
         len++;
 
     Initializer *init = new_init(ty, len, NULL, tok);
-    tok = skip(tok, "{");
+    bool has_paren = consume(&tok, tok, "{");
 
     int i = 0;
     for (Member *mem = ty->members; mem && !is_end(tok); mem = mem->next, i++) {
@@ -731,7 +736,10 @@ static Initializer *struct_initializer(Token **rest, Token *tok, Type *ty) {
             tok = skip(tok, ",");
         init->children[i] = initializer(&tok, tok, mem->ty);
     }
-    *rest = skip_end(tok);
+
+    if (has_paren)
+        tok = skip_end(tok);
+    *rest = tok;
     return init;
 }
 
