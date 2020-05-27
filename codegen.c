@@ -499,7 +499,9 @@ static void emit_data(Program *prog) {
                 printf("  .zero %d\n", init->offset - offset);
             offset = init->offset + init->sz;
 
-            if (init->sz == 1)
+            if (init->label)
+                printf("  .quad %s%+ld\n", init->label, init->addend);
+            else if (init->sz == 1)
                 printf("  .byte %ld\n", init->val);
             else if (init->sz == 2)
                 printf("  .short %ld\n", init->val);

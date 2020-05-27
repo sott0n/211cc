@@ -90,6 +90,7 @@ static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
 static long eval(Node *node);
+static long eval2(Node *node, Var **var);
 static Node *assign(Token **rest, Token *tok);
 static Node *logor(Token **rest, Token *tok);
 static long const_expr(Token **rest, Token *tok);
@@ -818,6 +819,17 @@ new_gvar_init_val(GvarInitializer *cur, int offset, int sz, int val) {
 }
 
 static GvarInitializer *
+new_gvar_init_label(GvarInitializer *cur, int offset, char *label, long addend) {
+    GvarInitializer *init = calloc(1, sizeof(GvarInitializer));
+    init->sz = 8;
+    init->label = label;
+    init->addend = addend;
+    init->offset = offset;
+    cur->next = init;
+    return init;
+}
+
+static GvarInitializer *
 create_gvar_init(GvarInitializer *cur, Initializer *init, Type *ty, int offset) {
     if (ty->kind == TY_ARRAY) {
         int sz = size_of(ty->base);
@@ -835,8 +847,11 @@ create_gvar_init(GvarInitializer *cur, Initializer *init, Type *ty, int offset) 
         return cur;
     }
 
-    long val = eval(init->expr);
-    return new_gvar_init_val(cur, offset, size_of(ty), val);
+    Var *var = NULL;
+    long addend = eval2(init->expr, &var);
+    if (var)
+        return new_gvar_init_label(cur, offset, var->name, addend);
+    return new_gvar_init_val(cur, offset, size_of(ty), addend);
 }
 
 // Initializers for global variables are evaluated at compile-time
@@ -1054,15 +1069,24 @@ static Node *expr(Token **rest, Token *tok) {
     return node;
 }
 
-// Evaluate a given node as a constant expression.
 static long eval(Node *node) {
+    return eval2(node, NULL);
+}
+
+// Evaluate a given node as a constant expression.
+//
+// A constant expression is either just a number or ptr+n where ptr
+// is a pointer to a global variable and n is a positive/negative
+// number. The latter form is accepted only as an initialization
+// expression for a global variable.
+static long eval2(Node *node, Var **var) {
     add_type(node);
 
     switch (node->kind) {
     case ND_ADD:
-        return eval(node->lhs) + eval(node->rhs);
+        return eval2(node->lhs, var) + eval(node->rhs);
     case ND_SUB:
-        return eval(node->lhs) - eval(node->rhs);
+        return eval2(node->lhs, var) - eval(node->rhs);
     case ND_MUL:
         return eval(node->lhs) * eval(node->rhs);
     case ND_DIV:
@@ -1105,9 +1129,19 @@ static long eval(Node *node) {
             case 4: return (int)eval(node->lhs);
             }
         }
-        return eval(node->lhs);
+        return eval2(node->lhs, var);
     case ND_NUM:
         return node->val;
+    case ND_ADDR:
+        if (!var || *var || node->lhs->kind != ND_VAR)
+            error_tok(node->tok, "invalid initializer");
+        *var = node->lhs->var;
+        return 0;
+    case ND_VAR:
+        if (!var || *var || node->var->ty->kind != TY_ARRAY)
+            error_tok(node->tok, "invalid initializer");
+        *var = node->var;
+        return 0;
     }
 
     error_tok(node->tok, "not a constant expression");
