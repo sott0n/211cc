@@ -483,15 +483,23 @@ static char *get_argreg(int sz, int idx) {
 }
 
 static void emit_data(Program *prog) {
+    printf(".bss\n");
+
+    for (Var *var = prog->globals; var; var = var->next) {
+        if (var->initializer)
+            continue;
+
+        printf("%s:\n", var->name);
+        printf("  .zero %d\n", size_of(var->ty));
+    }
+
     printf(".data\n");
 
     for (Var *var = prog->globals; var; var = var->next) {
-        printf("%s:\n", var->name);
-
-        if (!var->initializer) {
-            printf("  .zero %d\n", size_of(var->ty));
+        if (!var->initializer)
             continue;
-        }
+
+        printf("%s:\n", var->name);
         
         int offset = 0;
         for (GvarInitializer *init = var->initializer; init; init = init->next) {
