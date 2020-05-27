@@ -27,6 +27,7 @@ struct TagScope {
 typedef struct {
     bool is_typedef;
     bool is_static;
+    bool is_extern;
 } VarAttr;
 
 // This struct represents a variable initializer. Since initializers
@@ -344,16 +345,18 @@ static Type *typespec(Token **rest, Token *tok, VarAttr *attr) {
 
     while (is_typename(tok)) {
         // Handle storage class specifiers
-        if (equal(tok, "typedef") || equal(tok, "static")) {
+        if (equal(tok, "typedef") || equal(tok, "static") || equal(tok, "extern")) {
             if (!attr)
                 error_tok(tok, "storage class specifier is not allowed in this context");
 
             if (equal(tok, "typedef"))
                 attr->is_typedef = true;
-            else
+            else if (equal(tok, "static"))
                 attr->is_static = true;
+            else
+                attr->is_extern = true;
 
-            if (attr->is_typedef + attr->is_static > 1)
+            if (attr->is_typedef + attr->is_static + attr->is_extern > 1)
                 error_tok(tok, "typedef and static may not be used together");
             tok = tok->next;
             continue;
@@ -898,7 +901,7 @@ static GvarInitializer *gvar_init_string(char *p, int len) {
 static bool is_typename(Token *tok) {
     static char *kw[] = {
         "void", "_Bool", "char", "short", "int", "long", "struct", "union",
-        "typedef", "enum", "static",
+        "typedef", "enum", "static", "extern",
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)

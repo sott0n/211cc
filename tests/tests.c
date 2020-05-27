@@ -38,6 +38,10 @@ struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
 
+extern int ext1;
+extern int *ext2;
+
+
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
         printf("%s => %d\n", code, actual);
@@ -723,6 +727,12 @@ int main() {
     assert(0, strcmp(g33[0], "foo"), "strcmp(g33[0], \"foo\")");
     assert(0, strcmp(g33[1], "bar"), "strcmp(g33[1], \"bar\")");
     assert(0, strcmp(g34, "foo"), "strcmp(g34, \"foo\")");
+
+    ext1 = 5;
+    assert(5, ext1, "ext1");
+
+    ext2 = &ext1;
+    assert(5, *ext2, "*ext2");
 
     printf("OK\n");
     return 0;
