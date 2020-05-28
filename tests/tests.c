@@ -41,6 +41,10 @@ char *g34 = {"foo"};
 extern int ext1;
 extern int *ext2;
 
+int;
+struct {char a; int b;};
+typedef struct {char a; int b;} Ty1;
+
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
