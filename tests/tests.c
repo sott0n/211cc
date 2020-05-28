@@ -45,6 +45,8 @@ int;
 struct {char a; int b;};
 typedef struct {char a; int b;} Ty1;
 
+int _Alignas(512) g_aligned1;
+int _Alignas(512) g_aligned2;
 
 int assert(int expected, int actual, char *code) {
     if (expected == actual) {
@@ -749,6 +751,15 @@ int main() {
     assert(4, alignof(int[3]), "alignof(int[3])");
     assert(1, alignof(struct {char a; char b;}[2]), "alignof(struct {char a; char b;}[2])");
     assert(8, alignof(struct {char a; long b;}[2]), "alignof(struct {char a; long b;}[2])");
+
+    assert(1, ({ _Alignas(char) char x, y; &y-&x; }), "({ _Alignas(char) char x, y; &y-&x; })");
+    assert(8, ({ _Alignas(long) char x, y; &y-&x; }), "({ _Alignas(long) char x, y; &y-&x; })");
+    assert(32, ({ _Alignas(32) char x, y; &y-&x; }), "({ _Alignas(32) char x, y; &y-&x; })");
+    assert(32, ({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); }), "({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); })");
+    assert(16, ({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; }), "({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; })");
+    assert(8, ({ struct T { _Alignas(8) char a; }; alignof(struct T); }), "({ struct T { _Alignas(8) char a; }; alignof(struct T); })");
+    assert(0, (long)(char *)&g_aligned1 % 512, "(long)(char *)&g_aligned1 % 512");
+    assert(0, (long)(char *)&g_aligned2 % 512, "(long)(char *)&g_aligned2 % 512");
 
     printf("OK\n");
     return 0;
