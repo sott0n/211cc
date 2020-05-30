@@ -238,12 +238,13 @@ static Var *new_lvar(char *name, Type *ty) {
     return var;
 }
 
-static Var *new_gvar(char *name, Type *ty, bool emit) {
+static Var *new_gvar(char *name, Type *ty, bool is_static, bool emit) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
     var->ty = ty;
     var->align = ty->align;
     var->is_local = false;
+    var->is_static = is_static;
     if (emit) {
         var->next = globals;
         globals = var;
@@ -261,7 +262,7 @@ static char *new_label(void) {
 
 static Var *new_string_literal(char *p, int len) {
     Type *ty = array_of(ty_char, len);
-    Var *var = new_gvar(new_label(), ty, true);
+    Var *var = new_gvar(new_label(), ty, true, true);
     var->initializer = gvar_init_string(p, len);
     return var;
 }
@@ -670,7 +671,7 @@ static Node *declaration(Token **rest, Token *tok) {
 
         if (attr.is_static) {
             // static local variable
-            Var *var = new_gvar(new_label(), ty, true);
+            Var *var = new_gvar(new_label(), ty, true, true);
             push_scope(get_ident(ty->name))->var = var;
 
             if (equal(tok, "="))
@@ -1555,7 +1556,7 @@ static Node *mul(Token **rest, Token *tok) {
 // compound-literal = initializer "}"
 static Node *compound_literal(Token **rest, Token *tok, Type *ty, Token *start) {
     if (scope_depth == 0) {
-        Var *var = new_gvar(new_label(), ty, true);
+        Var *var = new_gvar(new_label(), ty, true, true);
         var->initializer = gvar_initializer(rest, tok, ty);
         return new_var_node(var, start);
     }
@@ -1954,7 +1955,7 @@ Program *parse(Token *tok) {
 
         // Function
         if (ty->kind == TY_FUNC) {
-            current_fn = new_gvar(get_ident(ty->name), ty, false);
+            current_fn = new_gvar(get_ident(ty->name), ty, true, false);
             if (!consume(&tok, tok, ";"))
                 cur = cur->next = funcdef(&tok, start);
             continue;
@@ -1962,7 +1963,7 @@ Program *parse(Token *tok) {
 
         // Global variable
         for (;;) {
-            Var *var = new_gvar(get_ident(ty->name), ty, true);
+            Var *var = new_gvar(get_ident(ty->name), ty, attr.is_static, !attr.is_extern);
             if (attr.align)
                 var->align = attr.align;
 

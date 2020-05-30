@@ -62,6 +62,7 @@ struct Var {
     bool is_local;  // local or global
     int align;      // alignment
 
+    bool is_static;
     GvarInitializer *initializer;
 
     // Local variable
