@@ -38,6 +38,22 @@ struct {int a[2];} g31[2] = {1, 2, 3, 4};
 char g33[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g34 = {"foo"};
 
+typedef struct Tree {
+    int val;
+    struct Tree *lhs;
+    struct Tree *rhs;
+} Tree;
+
+Tree *tree = &(Tree){
+    1,
+    &(Tree){
+        2,
+        &(Tree){ 3, 0, 0},
+        &(Tree){ 4, 0, 0},
+    },
+    0,
+};
+
 extern int ext1;
 extern int *ext2;
 
@@ -775,6 +791,17 @@ int main() {
     assert(4, ({ struct T *foo; struct T {int x;}; sizeof(struct T); }), "({ struct T *foo; struct T {int x;}; sizeof(struct T); })");
     assert(1, ({ struct T { struct T *next; int x; } a; struct T b; b.x=1; a.next=&b; a.next->x; }), "({ struct T { struct T *next; int x; } a; struct T b; b.x=1; a.next=&b; a.next->x; })");
     assert(4, ({ typedef struct T T; struct T { int x; }; sizeof(T); }), "({ typedef struct T T; struct T { int x; }; sizeof(T); })");
+
+    assert(1, (int){1}, "(int){1}");
+    assert(2, ((int[]){0,1,2})[2], "((int[]){0,1,2})[2]");
+    assert('a', ((struct {char a; int b;}){'a', 3}).a, "((struct {char a; int b;}){'a', 3}).a");
+    assert(3, ({ int x=3; (int){x}; }), "({ int x=3; (int){x}; })");
+    (int){3} = 5;
+    
+    assert(1, tree->val, "tree->val");
+    assert(2, tree->lhs->val, "tree->lhs->val");
+    assert(3, tree->lhs->lhs->val, "tree->lhs->lhs->val");
+    assert(4, tree->lhs->rhs->val, "tree->lhs->rhs->val");
 
     printf("OK\n");
     return 0;

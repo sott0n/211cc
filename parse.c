@@ -1,3 +1,21 @@
+// This file contains a recursive descent parser for C.
+//
+// Most functions in this file are named after the symbols they are
+// supposed to read from an input token list. For example, stmt() is
+// responsible for reading a statement from a token list. The function
+// then construct an AST node representing a statement.
+//
+// Each function conceptually returns two values, an AST node and
+// remaining part of the input tokens. Since C doesn't support
+// multiple return values, the remaining tokens are returned to the
+// caller via a pointer argument.
+//
+// Input tokens are represented by a linked list. Unlike many recursive
+// descent parsers, we don't have the notion of the "input token stream".
+// Most parsing functions don't change the global state of the parser.
+// So it is very easy to lookahead arbitrary number of tokens in this
+// parser.
+
 #include "211cc.h"
 
 // Scope for local, global variables or typedefs.
@@ -1531,14 +1549,37 @@ static Node *mul(Token **rest, Token *tok) {
     }
 }
 
-// cast = "(" type-name ")" cast | unary
+// compound-literal = initializer "}"
+static Node *compound_literal(Token **rest, Token *tok, Type *ty, Token *start) {
+    if (scope_depth == 0) {
+        Var *var = new_gvar(new_label(), ty, true);
+        var->initializer = gvar_initializer(rest, tok, ty);
+        return new_var_node(var, start);
+    }
+
+    Var *var = new_lvar(new_label(), ty);
+    Node *lhs = new_node(ND_STMT_EXPR, tok);
+    lhs->body = lvar_initializer(rest, tok, var)->body;
+    Node *rhs = new_var_node(var, tok);
+    return new_binary(ND_COMMA, lhs, rhs, tok);
+}
+
+// cast = "(" type-name ")" "{" compound_literal
+//      | "(" type-name ")" cast
+//      | unary
 static Node *cast(Token **rest, Token *tok) {
     if (equal(tok, "(") && is_typename(tok->next)) {
-        Node *node = new_unary(ND_CAST, NULL, tok);
-        node->ty = typename(&tok, tok->next);
+        Token *start = tok;
+        Type *ty = typename(&tok, tok->next);
         tok = skip(tok, ")");
+
+        if (equal(tok, "{"))
+            return compound_literal(rest, tok, ty, start);
+
+        Node *node = new_unary(ND_CAST, NULL, start);
         node->lhs = cast(rest, tok);
         add_type(node->lhs);
+        node->ty = ty;
         return node;
     }
 
