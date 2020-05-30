@@ -15,5 +15,11 @@ $ make
 $ make test
 ```
 
+For self hosting test below:
+
+```
+$ make test-stage2
+```
+
 ## Acknowlege
 211cc is inspired by [9cc](https://github.com/rui314/9cc)
