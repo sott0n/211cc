@@ -3,19 +3,24 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 211cc: $(OBJS)
-		$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 $(OBJS): 211cc.h
 
-test: 211cc
-		./211cc tests/tests.c > tmp.s
-		echo 'int ext1; int *ext2; int ext3 = 5; int char_fn() { return 257; }' \
-			'int static_fn() { return 5; }' | \
-			gcc -xc -c -fno-common -o tmp2.o -
-		gcc -static -o tmp tmp.s tmp2.o
-		./tmp
+211cc-stage2: 211cc $(SRCS) 211cc.h self.sh
+	./self.sh
+
+test: 211cc tests/extern.o
+	./211cc tests/tests.c > tmp.s
+	gcc -static -o tmp tmp.s tests/extern.o
+	./tmp
+
+test-stage2: 211cc-stage2 tests/extern.o
+	./211cc-stage2 tests/tests.c > tmp.s
+	gcc -static -o tmp tmp.s tests/extern.o
+	./tmp
 
 clean:
-		rm -rf 211cc *.o *~ tmp* tests/*~ tests/*.o
+	rm -rf 211cc 211cc-stage* *.o *~ tmp* tests/*~ tests/*.o
 
 .PHONY: test clean
