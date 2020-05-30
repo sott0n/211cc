@@ -39,7 +39,6 @@ static void verror_at(int lineno, char *loc, char *fmt, va_list ap) {
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
-    exit(1);
 }
 
 static void error_at(char *loc, char *fmt, ...) {
