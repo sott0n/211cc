@@ -140,6 +140,9 @@ int param_decay(int x[]) { return x[0]; }
 _Bool true_fn();
 _Bool false_fn();
 
+int add_all1(int x, ...);
+int add_all3(int x, int y, int z, ...);
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -824,6 +827,12 @@ int main() {
 
     assert(1, true_fn(), "true_fn()");
     assert(0, false_fn(), "false_fn()");
+
+    assert(6, add_all1(1,2,3,0), "add_all1(1,2,3,0)");
+    assert(5, add_all1(1,2,3,-1,0), "add_all1(1,2,3,-1,0)");
+
+    assert(6, add_all3(1,2,3,0), "add_all3(1,2,3,0)");
+    assert(5, add_all3(1,2,3,-1,0), "add_all3(1,2,3,-1,0)");
 
     printf("OK\n");
     return 0;
