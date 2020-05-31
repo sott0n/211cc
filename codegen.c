@@ -402,6 +402,24 @@ static void gen_stmt(Node *node) {
         contseq = cont;
         return;
     }
+    case ND_DO: {
+        int seq = labelseq++;
+        int brk = brkseq;
+        int cont = contseq;
+        brkseq = contseq = seq;
+
+        printf(".L.begin.%d:\n", seq);
+        gen_stmt(node->then);
+        printf(".L.continue.%d:\n", seq);
+        gen_expr(node->cond);
+        printf("  cmp %s, 0\n", reg(--top));
+        printf("  jne .L.begin.%d\n", seq);
+        printf(".L.break.%d:\n", seq);
+
+        brkseq = brk;
+        contseq = cont;
+        return;
+    }
     case ND_SWITCH: {
         int seq = labelseq++;
         int brk = brkseq;
