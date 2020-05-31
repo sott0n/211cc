@@ -1,8 +1,11 @@
-#!/bin/bash -x
+#!/bin/bash
 set -e
 
-TMP=tmp-self
+TMP=$1
+CC=$2
+OUTPUT=$3
 
+rm -rf $TMP
 mkdir -p $TMP
 
 211cc() {
@@ -57,7 +60,7 @@ EOF
     sed -i 's/INT_MAX/2147483647/g' $TMP/$1
     sed -i 's/\bva_start\b/__builtin_va_start/g' $TMP/$1
 
-    ./211cc $TMP/$1 > $TMP/${1%.c}.s
+    ($CC $TMP/$1 > $TMP/${1%.c}.s)
     gcc -c -o $TMP/${1%.c}.o $TMP/${1%.c}.s
 }
 
@@ -71,5 +74,5 @@ cc() {
 211cc codegen.c
 211cc tokenize.c
 
-gcc -static -o 211cc-stage2 $TMP/*.o
+(cd $TMP; gcc -static -o ../$OUTPUT *.o)
 

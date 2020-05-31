@@ -9,16 +9,29 @@ Run make to build:
 $ make
 ```
 
+This compiler can self hosting:
+
+```
+$ make 211cc-stage2
+```
+
+## Test
 211cc comes with tests. To run the tests, give "test" as an argument:
 
 ```
 $ make test
 ```
 
-For self hosting test below:
+For self hosting test:
 
 ```
 $ make test-stage2
+```
+
+You can check if the self hosting compiler is made correctly by comparing stage 2 and stage 3 compilers using diff command:  
+
+```
+$ make test-stage3
 ```
 
 ## Acknowlege

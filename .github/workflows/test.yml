@@ -12,8 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: run test
-      run: make test
-    - name: run stage2 test for self-hosting
-      run: make test-stage2
+      run: make test-all
     - name: clean files
       run: make clean
