@@ -243,6 +243,15 @@ static void gen_expr(Node *node) {
         return;
     }
     case ND_FUNCALL: {
+        if (!strcmp(node->funcname, "__builtin_va_start")) {
+            gen_expr(node->args);
+            printf("  mov eax, [rbp-40]\n");
+            printf("  mov [%s], eax\n", reg(top - 1));
+            printf("  lea rax, [rbp-88]\n");
+            printf("  mov [%s+16], rax\n", reg(top - 1));
+            return;
+        }
+
         // Save all temporary registers to the stack before evaluating
         // function arguments to allow each argument evaluation to use all
         // temporary registers. This is a workaround for a register
@@ -574,6 +583,21 @@ static void emit_text(Program *prog) {
         printf("  mov [rbp-16], r13\n");
         printf("  mov [rbp-24], r14\n");
         printf("  mov [rbp-32], r15\n");
+
+        // Save arg registers if function is variadic
+        if (fn->is_varargs) {
+            int n = 0;
+            for (Var *var = fn->params; var; var = var->next)
+                n++;
+
+            printf("  mov [rbp-88], rdi\n");
+            printf("  mov [rbp-80], rsi\n");
+            printf("  mov [rbp-72], rdx\n");
+            printf("  mov [rbp-64], rcx\n");
+            printf("  mov [rbp-56], r8\n");
+            printf("  mov [rbp-48], r9\n");
+            printf("  mov dword ptr [rbp-40], %d\n", n * 8);
+        }
 
         // Save arguments to the stack
         int i = 0;

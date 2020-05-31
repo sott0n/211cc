@@ -320,6 +320,7 @@ static Function *funcdef(Token **rest, Token *tok) {
     Function *fn = calloc(1, sizeof(Function));
     fn->name = get_ident(ty->name);
     fn->is_static = attr.is_static;
+    fn->is_varargs = ty->is_varargs;
 
     enter_scope();
     for (Type *t = ty->params; t; t = t->next)
@@ -1950,6 +1951,10 @@ static Node *primary(Token **rest, Token *tok) {
 
 // program = (funcdef | global-var)*
 Program *parse(Token *tok) {
+    // Add built-in function types
+    new_gvar("__builtin_va_start", func_type(ty_void), false, false);
+
+    // Read source code util EOF
     Function head = {};
     Function *cur = &head;
     globals = NULL;

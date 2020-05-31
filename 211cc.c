@@ -52,7 +52,10 @@ int main(int argc, char **argv) {
 
     // Assign offsets to local variables
     for (Function *fn = prog->fns; fn; fn = fn->next) {
-        int offset = 32; // 32 for callee-saved registers
+        // Besides local variables, callee-saved registers take 32 bytes
+        // and the variable-argument save area takes 56 bytes in the stack.
+        int offset = fn->is_varargs ? 88 : 32;
+
         for (Var *var = fn->locals; var; var = var->next) {
             offset = align_to(offset, var->align);
             offset += size_of(var->ty);
