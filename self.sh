@@ -30,15 +30,22 @@ int fclose(FILE *fp);
 int feof(FILE *stream);
 static void assert() {}
 int strcmp(char *s1, char *s2);
+int strncasecmp(char *s1, char *s2);
 int printf(char *fmt, ...);
 int sprintf(char *buf, char *fmt, ...);
+int fprintf(FILE *fp, char *fmt, ...);
+int vfprintf(FILE *fp, char *fmt, va_list ap);
 long strlen(char *p);
 int strncmp(char *p, char *q);
 void *memcpy(char *dst, char *src, long n);
 char *strndup(char *p, long n);
 int isspace(int c);
+int ispunct(int c);
+int isdigit(int c);
 char *strstr(char *haystack, char *needle);
 static void va_end(va_list ap) {}
+long strtoul(char *nptr, char **endptr, int base);
+void exit(int code);
 EOF
 
     grep -v '^#' 211cc.h >> $TMP/$1
@@ -62,7 +69,7 @@ cc() {
 211cc type.c
 211cc parse.c
 211cc codegen.c
-cc tokenize.c
+211cc tokenize.c
 
 gcc -static -o 211cc-stage2 $TMP/*.o
 
