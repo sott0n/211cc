@@ -242,6 +242,7 @@ static Token *read_char_literal(Token *cur, char *start) {
 static Token *read_int_literal(Token *cur, char *start) {
     char *p = start;
 
+    // Read a binary, octal, decimal or hexadecimal number
     int base = 10;
     if (!strncasecmp(p, "0x", 2) && is_alnum(p[2])) {
         p += 2;
@@ -254,11 +255,37 @@ static Token *read_int_literal(Token *cur, char *start) {
     }
 
     long val = strtoul(p, &p, base);
+    Type *ty = ty_int;
+
+    // Read U, L or LL prefixes or infer a type
+    if (startswith(p, "LLU") || startswith(p, "LLu") ||
+        startswith(p, "llU") || startswith(p, "llu") ||
+        startswith(p, "ULL") || startswith(p, "Ull") ||
+        startswith(p, "uLL") || startswith(p, "ull")) {
+        p += 3;
+        ty = ty_ulong;
+    } else if (startswith(p, "LL") || startswith(p, "ll")) {
+        p += 2;
+        ty = ty_long;
+    } else if (!strncasecmp(p, "lu", 2) || !strncasecmp(p, "ul", 2)) {
+        p += 2;
+        ty = ty_ulong;
+    } else if (*p == 'L' || *p == 'l') {
+        p++;
+        ty = ty_long;
+    } else if (*p == 'U' || *p == 'u') {
+        p++;
+        ty = ty_uint;
+    } else if (val >> 31) {
+        ty = ty_long;
+    }
+
     if (is_alnum(*p))
         error_at(p, "invalid digit");
 
     Token *tok = new_token(TK_NUM, cur, start, p - start);
     tok->val = val;
+    tok->ty = ty;
     return tok;
 }
 

@@ -926,6 +926,26 @@ int main() {
     assert(-1, ({ typedef short T; T x = 65535; (int)x; }), "({ typedef short T; T x = 65535; (int)x; })");
     assert(65535, ({ typedef unsigned short T; T x = 65535; (int)x; }), "({ typedef unsigned short T; T x = 65535; (int)x; })");
 
+    assert(4, sizeof(0), "sizeof(0)");
+    assert(8, sizeof(0L), "sizeof(0L)");
+    assert(8, sizeof(0LU), "sizeof(0LU)");
+    assert(8, sizeof(0UL), "sizeof(0UL)");
+    assert(8, sizeof(0LL), "sizeof(0LL)");
+    assert(8, sizeof(0LLU), "sizeof(0LLU)");
+    assert(8, sizeof(0Ull), "sizeof(0Ull)");
+    assert(8, sizeof(0l), "sizeof(0l)");
+    assert(8, sizeof(0ll), "sizeof(0ll)");
+    assert(8, sizeof(0x0L), "sizeof(0x0L)");
+    assert(8, sizeof(0b0L), "sizeof(0b0L)");
+    assert(4, sizeof(2147483647), "sizeof(02147483647)");
+    assert(8, sizeof(2147483648), "sizeof(02147483648)");
+    assert(-1, 0xffffffffffffffff, "0xffffffffffffffff");
+    assert(8, sizeof(0xffffffffffffffff), "sizeof(0xffffffffffffffff)");
+
+    assert(3, -1U>>30, "-1U>>30");
+    assert(3, -1Ul>>62, "-1Ul>>62");
+    assert(3, -1ull>>62, "-1ull>>62");
+
     printf("OK\n");
     return 0;
 }
