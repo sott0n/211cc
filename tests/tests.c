@@ -946,6 +946,8 @@ int main() {
     assert(3, -1Ul>>62, "-1Ul>>62");
     assert(3, -1ull>>62, "-1ull>>62");
 
+    assert(1, 0xffffffffffffffff>>63, "0xffffffffffffffff>>63");
+
     printf("OK\n");
     return 0;
 }

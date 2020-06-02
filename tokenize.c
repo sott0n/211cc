@@ -276,6 +276,8 @@ static Token *read_int_literal(Token *cur, char *start) {
     } else if (*p == 'U' || *p == 'u') {
         p++;
         ty = ty_uint;
+    } else if (val >> 63) {
+        ty = ty_ulong;
     } else if (val >> 31) {
         ty = ty_long;
     }
