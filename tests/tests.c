@@ -970,6 +970,12 @@ int main() {
     assert(8, ({ const x = 8; int *const y=&x; *y; }), "({ const x = 8; int *const y=&x; *y; })");
     assert(6, ({ const x = 6; *(const * const)&x; }), "({ const x = 6; *(const * const)&x; })");
 
+    { volatile x; }
+    { int volatile x; }
+    { volatile int x; }
+    { volatile int volatile volatile x; }
+    { int volatile * volatile volatile x; }
+
     printf("OK\n");
     return 0;
 }
