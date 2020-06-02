@@ -948,6 +948,11 @@ int main() {
 
     assert(1, 0xffffffffffffffff>>63, "0xffffffffffffffff>>63");
 
+    assert(1, sizeof(char) << 31 >> 31, "sizeof(char) << 31 >> 31");
+    assert(1, sizeof(char) << 63 >> 63, "sizeof(char) << 63 >> 63");
+    assert(1, alignof(char) << 31 >> 31, "alignof(char) << 31 >> 31");
+    assert(1, alignof(char) << 63 >> 63, "alignof(char) << 63 >> 63");
+
     printf("OK\n");
     return 0;
 }
