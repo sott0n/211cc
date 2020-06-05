@@ -73,6 +73,7 @@ cc() {
 211cc parse.c
 211cc codegen.c
 211cc tokenize.c
+211cc preprocess.c
 
 (cd $TMP; gcc -static -o ../$OUTPUT *.o)
 
