@@ -158,6 +158,10 @@ char *fmt(char *buf, char *fmt, ...) {
     vsprintf(buf, fmt, ap);
 }
 
+int (*fnptr(void))(int) {
+    return ret3;
+}
+
 int main() {
     assert(0, 0, "0");
     assert(42, 42, "42");
@@ -975,6 +979,11 @@ int main() {
     { volatile int x; }
     { volatile int volatile volatile x; }
     { int volatile * volatile volatile x; }
+
+    assert(5, (add2)(2,3), "(add2)(2,3)");
+    assert(5, (&add2)(2,3), "(&add2)(2,3)");
+    assert(7, ({ int (*fn)(int,int) = add2; fn(2,5); }), "({ int (*fn)(int,int) = add2; fn(2,5); })");
+    assert(3, fnptr()(), "fnptr()()");
 
     printf("OK\n");
     return 0;

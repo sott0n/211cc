@@ -58,7 +58,7 @@ static void gen_addr(Node *node) {
 
 // Load a value from where the stack top is pointing to.
 static void load(Type *ty) {
-    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT) {
+    if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_FUNC) {
         // If it is an array, do nothing because in general we can't load
         // an entire array to a register. As a result, the result of an
         // evaluation of an array becomes not the array itself but the
@@ -262,7 +262,8 @@ static void gen_expr(Node *node) {
         return;
     }
     case ND_FUNCALL: {
-        if (!strcmp(node->funcname, "__builtin_va_start")) {
+        if (node->lhs->kind == ND_VAR &&
+                !strcmp(node->lhs->var->name, "__builtin_va_start")) {
             gen_expr(node->args);
             printf("  mov eax, [rbp-40]\n");
             printf("  mov [%s], eax\n", reg(top - 1));
@@ -294,13 +295,15 @@ static void gen_expr(Node *node) {
             nargs++;
         }
 
+        gen_expr(node->lhs);
+
         for (int i = nargs - 1; i >= 0; i--) {
             printf("  add rsp, 8\n");
             printf("  pop %s\n", argreg64[i]);
         }
 
         printf("  mov rax, 0\n");
-        printf("  call %s\n", node->funcname);
+        printf("  call %s\n", reg(--top));
 
         // The System V x86-64 ABI has a special rule regarding a boolean
         // return value that only the lower 8 bits are valid for it and
